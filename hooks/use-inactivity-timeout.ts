@@ -6,11 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 interface UseInactivityTimeoutProps {
   timeoutMinutes: number
   warningMinutes: number
+  enabled: boolean // Nueva prop para controlar si está habilitado
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 0.05,
-  warningMinutes = 0.02
+  timeoutMinutes = 30,
+  warningMinutes = 5,
+  enabled = true // Por defecto habilitado
 }: UseInactivityTimeoutProps) {
   const [showWarning, setShowWarning] = useState(false)
   const [remainingTime, setRemainingTime] = useState(0)
@@ -22,8 +24,10 @@ export function useInactivityTimeout({
   const timeoutSeconds = timeoutMinutes * 60
   const warningSeconds = warningMinutes * 60
 
-  // Función para registrar actividad y actualizar profiles
+  // Función para registrar actividad
   const recordActivity = useCallback(async () => {
+    if (!enabled) return // No registrar si no está habilitado
+    
     console.log("Registrando actividad...")
     
     if (showWarning) {
@@ -38,7 +42,6 @@ export function useInactivityTimeout({
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Actualizar la tabla profiles con la última actividad
         const { error } = await supabase
           .from('profiles')
           .update({ 
@@ -48,15 +51,13 @@ export function useInactivityTimeout({
           .eq('id', user.id)
 
         if (error) {
-          console.error("Error actualizando actividad en profiles:", error)
-        } else {
-          console.log("Actividad registrada en profiles para usuario:", user.id)
+          console.error("Error actualizando actividad:", error)
         }
       }
     } catch (error) {
       console.error("Error registrando actividad:", error)
     }
-  }, [showWarning, supabase])
+  }, [showWarning, supabase, enabled])
 
   // Función para extender sesión
   const extendSession = useCallback(() => {
@@ -69,34 +70,26 @@ export function useInactivityTimeout({
     console.log("Cerrando sesión por inactividad...")
     setShowWarning(false)
     
-    // Registrar el logout en profiles si quieres
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            status: 'inactive', // O mantener active si prefieres
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-      }
-    } catch (error) {
-      console.error("Error actualizando estado al cerrar sesión:", error)
-    }
-    
     await supabase.auth.signOut()
     window.location.href = '/login?message=session_expired'
   }, [supabase])
 
   // Limpiar timeouts
   const clearTimeouts = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    if (warningRef.current) clearTimeout(warningRef.current)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    if (warningRef.current) {
+      clearTimeout(warningRef.current)
+      warningRef.current = null
+    }
   }, [])
 
   // Reiniciar timeouts
   const resetTimeouts = useCallback(() => {
+    if (!enabled) return // No reiniciar si no está habilitado
+    
     clearTimeouts()
     
     console.log(`Reiniciando timeouts: ${timeoutMinutes}min total, ${warningMinutes}min advertencia`)
@@ -114,11 +107,11 @@ export function useInactivityTimeout({
       console.log("Timeout alcanzado, cerrando sesión")
       logout()
     }, timeoutSeconds * 1000)
-  }, [timeoutSeconds, warningSeconds, logout, clearTimeouts, timeoutMinutes, warningMinutes])
+  }, [timeoutSeconds, warningSeconds, logout, clearTimeouts, timeoutMinutes, warningMinutes, enabled])
 
   // Actualizar tiempo restante cada segundo
   useEffect(() => {
-    if (!showWarning) return
+    if (!showWarning || !enabled) return
 
     const interval = setInterval(() => {
       setRemainingTime(prev => {
@@ -131,10 +124,12 @@ export function useInactivityTimeout({
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [showWarning])
+  }, [showWarning, enabled])
 
-  // Configurar listeners de actividad
+  // Configurar listeners de actividad SOLO si está habilitado
   useEffect(() => {
+    if (!enabled) return
+
     const activityEvents = [
       'mousedown',
       'mousemove',
@@ -144,18 +139,12 @@ export function useInactivityTimeout({
       'click'
     ]
 
-    const handleActivity = () => {
-      console.log("Actividad detectada")
-      recordActivity()
-    }
-
-    // Agregar listeners con throttling para evitar muchas llamadas
     let lastCall = 0
     const throttledHandleActivity = () => {
       const now = Date.now()
-      if (now - lastCall > 1000) { // Máximo una vez por segundo
+      if (now - lastCall > 1000) {
         lastCall = now
-        handleActivity()
+        recordActivity()
       }
     }
 
@@ -163,7 +152,7 @@ export function useInactivityTimeout({
       document.addEventListener(event, throttledHandleActivity, { passive: true })
     })
 
-    // Inicializar timeouts
+    // Inicializar timeouts solo si está habilitado
     resetTimeouts()
 
     return () => {
@@ -173,19 +162,19 @@ export function useInactivityTimeout({
       
       clearTimeouts()
     }
-  }, [recordActivity, resetTimeouts, clearTimeouts])
+  }, [recordActivity, resetTimeouts, clearTimeouts, enabled])
 
-  // Verificar actividad al cambiar de pestaña
+  // Verificar actividad al cambiar de pestaña SOLO si está habilitado
   useEffect(() => {
+    if (!enabled) return
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("Pestaña activa, registrando actividad")
         recordActivity()
       }
     }
 
     const handleFocus = () => {
-      console.log("Ventana enfocada, registrando actividad")
       recordActivity()
     }
 
@@ -196,7 +185,7 @@ export function useInactivityTimeout({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
     }
-  }, [recordActivity])
+  }, [recordActivity, enabled])
 
   return {
     showWarning,
