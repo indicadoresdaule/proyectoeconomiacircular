@@ -16,22 +16,6 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
 
-  // Para testing, usa tiempos cortos
-  const isDevelopment = process.env.NODE_ENV === 'development'
-  
-  const {
-    showWarning, 
-    remainingTime, 
-    extendSession, 
-    logout,
-    getDebugInfo,
-    simulateActivity,
-    forceLogout
-  } = useInactivityTimeout({
-    timeoutMinutes: isDevelopment ? 0.25 : 30, // 15 segundos en desarrollo
-    warningMinutes: isDevelopment ? 0.1 : 5    // 6 segundos de advertencia
-  })
-
   // Rutas públicas
   const publicRoutes = [
     "/login", 
@@ -46,15 +30,28 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     return pathname?.startsWith(route)
   })
 
+  // IMPORTANTE: Para testing, usa tiempos MUY CORTOS
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
+  const {
+    showWarning, 
+    remainingTime, 
+    extendSession, 
+    logout
+  } = useInactivityTimeout({
+    timeoutMinutes: isDevelopment ? 0.1 : 30, // 6 segundos en desarrollo
+    warningMinutes: isDevelopment ? 0.05 : 5   // 3 segundos de advertencia
+  })
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
-        console.log("Session check:", session ? "Autenticado" : "No autenticado")
+        console.log("🔐 Estado de sesión:", session ? "AUTENTICADO" : "NO autenticado")
         setIsAuthenticated(!!session)
       } catch (error) {
-        console.error("Error verificando autenticación:", error)
+        console.error("❌ Error verificando autenticación:", error)
         setIsAuthenticated(false)
       } finally {
         setIsLoading(false)
@@ -66,7 +63,7 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     // Escuchar cambios de autenticación
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session ? "Sesión activa" : "Sin sesión")
+      console.log("🔄 Cambio de auth:", event, session ? "Con sesión" : "Sin sesión")
       setIsAuthenticated(!!session)
       setIsLoading(false)
     })
@@ -81,8 +78,11 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   }
 
   if (isPublicRoute || !isAuthenticated) {
+    console.log("🔓 Ruta pública o no autenticado - sin timeout")
     return <>{children}</>
   }
+
+  console.log("🔐 Usuario autenticado - timeout activo")
 
   return (
     <>
@@ -93,15 +93,6 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         onExtend={extendSession}
         onLogout={logout}
       />
-      
-      {/* Panel de debug solo en desarrollo y cuando esté autenticado */}
-      {isDevelopment && isAuthenticated && (
-        <DebugPanel 
-          debugInfo={getDebugInfo()}
-          onSimulateActivity={simulateActivity}
-          onForceLogout={forceLogout}
-        />
-      )}
     </>
   )
 }
