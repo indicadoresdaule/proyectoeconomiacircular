@@ -126,11 +126,7 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     return <>{children}</>
   }
 
-  // (Opcional) Podrías excluir ciertos roles si quieres
-  const excludedRoles = ['admin'] // Los admins no tienen timeout
-  if (userRole && excludedRoles.includes(userRole)) {
-    return <>{children}</>
-  }
+  
 
   return (
     <>
