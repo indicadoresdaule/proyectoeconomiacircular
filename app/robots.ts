@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/admin/"],
       },
     ],
-    sitemap: "https://residuosdaule.vercel.app/sitemap.xml",
+    sitemap: "https://proyectoeconomiacircular.vercel.app/sitemap.xml",
   }
 }
