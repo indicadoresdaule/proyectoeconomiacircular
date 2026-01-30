@@ -32,6 +32,22 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     return pathname?.startsWith(route)
   })
 
+  // Configurar diferentes tiempos por rol
+  const getTimeoutConfig = () => {
+    switch(userRole) {
+      case 'admin':
+        return { timeoutMinutes: 0.1, warningMinutes: 0.05 } // 2 horas para admin
+      case 'docente':
+        return { timeoutMinutes: 60, warningMinutes: 5 } // 1 hora para docentes
+      case 'estudiante':
+        return { timeoutMinutes: 30, warningMinutes: 5 } // 30 minutos para estudiantes
+      default:
+        return { timeoutMinutes: 30, warningMinutes: 5 } // Default
+    }
+  }
+
+  const config = getTimeoutConfig()
+
   const {
     showWarning, 
     remainingTime, 
@@ -39,8 +55,8 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     logout,
     recordActivity
   } = useInactivityTimeout({
-    timeoutMinutes: 0.05,
-    warningMinutes: 0.02
+    timeoutMinutes: config.timeoutMinutes,
+    warningMinutes: config.warningMinutes
   })
 
   useEffect(() => {
@@ -62,13 +78,12 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
           
           if (!error && profile) {
             setUserRole(profile.role)
-            console.log(`Usuario autenticado con rol: ${profile.role}`)
+            console.log(`Usuario autenticado con rol: ${profile.role}, timeout: ${config.timeoutMinutes}min`)
           }
           
           // Registrar actividad inicial con retardo
           setTimeout(() => {
             recordActivity()
-            console.log("Actividad inicial registrada")
           }, 2000)
         }
       } catch (error) {
@@ -102,7 +117,6 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         // Registrar actividad cuando inicia sesión
         setTimeout(() => {
           recordActivity()
-          console.log("Actividad después de login registrada")
         }, 1000)
       } else {
         setUserRole(null)
@@ -114,7 +128,7 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     return () => {
       subscription.unsubscribe()
     }
-  }, [recordActivity])
+  }, [recordActivity, config.timeoutMinutes])
 
   // No mostrar nada durante la carga inicial
   if (isLoading) {
@@ -125,8 +139,6 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   if (isPublicRoute || !isAuthenticated) {
     return <>{children}</>
   }
-
-  
 
   return (
     <>
