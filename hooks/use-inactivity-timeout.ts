@@ -1,81 +1,208 @@
 "use client"
 
-import React from "react"
-import { useEffect, useState } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
-import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
 
-interface SessionTimeoutProviderProps {
-  children: React.ReactNode
+interface UseInactivityTimeoutProps {
+  timeoutMinutes: number
+  warningMinutes: number
 }
 
-export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-
-  // Para testing rápido
-  const isDevelopment = process.env.NODE_ENV === 'development'
+export function useInactivityTimeout({
+  timeoutMinutes = 30,
+  warningMinutes = 5
+}: UseInactivityTimeoutProps) {
+  const [showWarning, setShowWarning] = useState(false)
+  const [remainingTime, setRemainingTime] = useState(0)
   
-  const {
-    showWarning, 
-    remainingTime, 
-    extendSession, 
-    logout
-  } = useInactivityTimeout({
-    timeoutMinutes: isDevelopment ? 0.033 : 30, // 2 segundos en desarrollo
-    warningMinutes: isDevelopment ? 0.016 : 5    // 1 segundo de advertencia
-  })
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const warningRef = useRef<NodeJS.Timeout | null>(null)
+  const supabase = createClient()
 
-  useEffect(() => {
-    const supabase = createClient()
+  const timeoutSeconds = timeoutMinutes * 60
+  const warningSeconds = warningMinutes * 60
+
+  // Función para registrar actividad y actualizar profiles
+  const recordActivity = useCallback(async () => {
+    console.log("Registrando actividad...")
     
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        console.log("🔐 Estado de sesión:", session ? `✅ AUTENTICADO (${session.user.email})` : "❌ NO autenticado")
-        setIsAuthenticated(!!session)
-      } catch (error) {
-        console.error("Error:", error)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
+    if (showWarning) {
+      setShowWarning(false)
+      if (warningRef.current) clearTimeout(warningRef.current)
+    }
+    
+    resetTimeouts()
+    
+    // Actualizar last_sign_in_at en la tabla profiles
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        // Actualizar la tabla profiles con la última actividad
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            last_sign_in_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+
+        if (error) {
+          console.error("Error actualizando actividad en profiles:", error)
+        } else {
+          console.log("Actividad registrada en profiles para usuario:", user.id)
+        }
+      }
+    } catch (error) {
+      console.error("Error registrando actividad:", error)
+    }
+  }, [showWarning, supabase])
+
+  // Función para extender sesión
+  const extendSession = useCallback(() => {
+    recordActivity()
+    setShowWarning(false)
+  }, [recordActivity])
+
+  // Función para cerrar sesión
+  const logout = useCallback(async () => {
+    console.log("Cerrando sesión por inactividad...")
+    setShowWarning(false)
+    
+    // Registrar el logout en profiles si quieres
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            status: 'inactive', // O mantener active si prefieres
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+      }
+    } catch (error) {
+      console.error("Error actualizando estado al cerrar sesión:", error)
+    }
+    
+    await supabase.auth.signOut()
+    window.location.href = '/login?message=session_expired'
+  }, [supabase])
+
+  // Limpiar timeouts
+  const clearTimeouts = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (warningRef.current) clearTimeout(warningRef.current)
+  }, [])
+
+  // Reiniciar timeouts
+  const resetTimeouts = useCallback(() => {
+    clearTimeouts()
+    
+    console.log(`Reiniciando timeouts: ${timeoutMinutes}min total, ${warningMinutes}min advertencia`)
+
+    // Timeout para mostrar advertencia
+    warningRef.current = setTimeout(() => {
+      console.log("Mostrando advertencia de inactividad")
+      setShowWarning(true)
+      const startTime = timeoutSeconds - warningSeconds
+      setRemainingTime(startTime)
+    }, (timeoutSeconds - warningSeconds) * 1000)
+
+    // Timeout para cerrar sesión
+    timeoutRef.current = setTimeout(() => {
+      console.log("Timeout alcanzado, cerrando sesión")
+      logout()
+    }, timeoutSeconds * 1000)
+  }, [timeoutSeconds, warningSeconds, logout, clearTimeouts, timeoutMinutes, warningMinutes])
+
+  // Actualizar tiempo restante cada segundo
+  useEffect(() => {
+    if (!showWarning) return
+
+    const interval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [showWarning])
+
+  // Configurar listeners de actividad
+  useEffect(() => {
+    const activityEvents = [
+      'mousedown',
+      'mousemove',
+      'keydown',
+      'touchstart',
+      'scroll',
+      'click'
+    ]
+
+    const handleActivity = () => {
+      console.log("Actividad detectada")
+      recordActivity()
+    }
+
+    // Agregar listeners con throttling para evitar muchas llamadas
+    let lastCall = 0
+    const throttledHandleActivity = () => {
+      const now = Date.now()
+      if (now - lastCall > 1000) { // Máximo una vez por segundo
+        lastCall = now
+        handleActivity()
       }
     }
 
-    checkAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔄 Cambio de auth:", event)
-      setIsAuthenticated(!!session)
-      setIsLoading(false)
+    activityEvents.forEach(event => {
+      document.addEventListener(event, throttledHandleActivity, { passive: true })
     })
 
+    // Inicializar timeouts
+    resetTimeouts()
+
     return () => {
-      subscription.unsubscribe()
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, throttledHandleActivity)
+      })
+      
+      clearTimeouts()
     }
-  }, [])
+  }, [recordActivity, resetTimeouts, clearTimeouts])
 
-  if (isLoading) {
-    return <>{children}</>
+  // Verificar actividad al cambiar de pestaña
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Pestaña activa, registrando actividad")
+        recordActivity()
+      }
+    }
+
+    const handleFocus = () => {
+      console.log("Ventana enfocada, registrando actividad")
+      recordActivity()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [recordActivity])
+
+  return {
+    showWarning,
+    remainingTime,
+    extendSession,
+    logout,
+    recordActivity
   }
-
-  // SOLO mostrar timeout si está autenticado
-  if (!isAuthenticated) {
-    return <>{children}</>
-  }
-
-  console.log("🎯 Aplicando timeout - Usuario autenticado")
-
-  return (
-    <>
-      {children}
-      <InactivityWarningDialog
-        open={showWarning}
-        remainingTime={remainingTime}
-        onExtend={extendSession}
-        onLogout={logout}
-      />
-    </>
-  )
 }
