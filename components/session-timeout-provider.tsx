@@ -38,8 +38,8 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     logout,
     recordActivity
   } = useInactivityTimeout({
-    timeoutMinutes: 30,
-    warningMinutes: 5
+    timeoutMinutes: 0.1,
+    warningMinutes: 0.06
   })
 
   // Verificar estado del usuario y perfil
