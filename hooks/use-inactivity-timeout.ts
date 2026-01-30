@@ -15,7 +15,7 @@ export function useInactivityTimeout({
   const [isActive, setIsActive] = useState(true)
   const [showWarning, setShowWarning] = useState(false)
   const [remainingTime, setRemainingTime] = useState(0)
-  const [debug, setDebug] = useState<string[]>([])
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const warningRef = useRef<NodeJS.Timeout | null>(null)
@@ -28,8 +28,10 @@ export function useInactivityTimeout({
 
   // Función para agregar logs de depuración
   const addDebug = useCallback((message: string) => {
-    console.log(`[Timeout Debug] ${message}`)
-    setDebug(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
+    const timestamp = new Date().toLocaleTimeString()
+    const logMessage = `${timestamp}: ${message}`
+    console.log(`[Timeout Debug] ${logMessage}`)
+    setDebugLogs(prev => [...prev.slice(-10), logMessage]) // Mantener solo los últimos 10 logs
   }, [])
 
   // Función para registrar actividad
@@ -72,7 +74,7 @@ export function useInactivityTimeout({
       addDebug(`Error registrando actividad: ${error}`)
       console.error("Error registrando actividad:", error)
     }
-  }, [showWarning, supabase, addDebug])
+  }, [showWarning, supabase, addDebug, resetTimeouts])
 
   // Función para extender sesión
   const extendSession = useCallback(() => {
@@ -154,7 +156,7 @@ export function useInactivityTimeout({
         intervalRef.current = null
       }
     }
-  }, [showWarning, addDebug])
+  }, [showWarning, remainingTime, addDebug])
 
   // Configurar listeners de actividad
   useEffect(() => {
@@ -177,7 +179,6 @@ export function useInactivityTimeout({
     // Agregar listeners
     activityEvents.forEach(event => {
       document.addEventListener(event, handleActivity, { passive: true })
-      addDebug(`Listener agregado para: ${event}`)
     })
 
     // Inicializar timeouts
@@ -219,52 +220,27 @@ export function useInactivityTimeout({
     }
   }, [recordActivity, addDebug])
 
-  // Componente de depuración (solo para desarrollo)
-  const DebugPanel = () => {
-    if (process.env.NODE_ENV !== 'development') return null
-    
-    return (
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        right: 0,
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        fontSize: '12px',
-        maxWidth: '400px',
-        maxHeight: '200px',
-        overflow: 'auto',
-        zIndex: 9999
-      }}>
-        <h4>Debug Timeout:</h4>
-        <div>Timeout: {timeoutMinutes} min</div>
-        <div>Warning: {warningMinutes} min</div>
-        <div>Mostrando advertencia: {showWarning ? 'Sí' : 'No'}</div>
-        <div>Tiempo restante: {remainingTime}s</div>
-        <button 
-          onClick={() => recordActivity()} 
-          style={{margin: '5px', padding: '5px'}}
-        >
-          Simular Actividad
-        </button>
-        <button 
-          onClick={() => logout()} 
-          style={{margin: '5px', padding: '5px'}}
-        >
-          Forzar Logout
-        </button>
-        <div style={{marginTop: '10px'}}>
-          <strong>Logs:</strong>
-          {debug.slice(-5).map((log, i) => (
-            <div key={i} style={{borderBottom: '1px solid #444', padding: '2px'}}>
-              {log}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
+  // Función para obtener logs de debug (para mostrar en otro componente)
+  const getDebugInfo = useCallback(() => {
+    return {
+      isActive,
+      showWarning,
+      remainingTime,
+      timeoutMinutes,
+      warningMinutes,
+      logs: debugLogs
+    }
+  }, [isActive, showWarning, remainingTime, timeoutMinutes, warningMinutes, debugLogs])
+
+  // Función para simular actividad (para testing)
+  const simulateActivity = useCallback(() => {
+    recordActivity()
+  }, [recordActivity])
+
+  // Función para forzar logout (para testing)
+  const forceLogout = useCallback(() => {
+    logout()
+  }, [logout])
 
   return {
     isActive,
@@ -273,6 +249,8 @@ export function useInactivityTimeout({
     extendSession,
     logout,
     recordActivity,
-    DebugPanel // Exportar el panel de debug
+    getDebugInfo,
+    simulateActivity,
+    forceLogout
   }
 }
