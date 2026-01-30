@@ -38,11 +38,11 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
       case 'admin':
         return { timeoutMinutes: 0.1, warningMinutes: 0.05 } // 2 horas para admin
       case 'docente':
-        return { timeoutMinutes: 60, warningMinutes: 5 } // 1 hora para docentes
+        return { timeoutMinutes: 0.1, warningMinutes: 0.05 } // 1 hora para docentes
       case 'estudiante':
-        return { timeoutMinutes: 30, warningMinutes: 5 } // 30 minutos para estudiantes
+        return { timeoutMinutes: 0.1, warningMinutes: 0.05} // 30 minutos para estudiantes
       default:
-        return { timeoutMinutes: 30, warningMinutes: 5 } // Default
+        return { timeoutMinutes: 0.1, warningMinutes: 0.05} // Default
     }
   }
 
