@@ -9,16 +9,16 @@ const geist = Geist({ subsets: ["latin"] })
 const geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Gestión de Residuos Sólidos - Cantón Daule",
-  description: "Plataforma integral para el monitoreo, reporte y gestión de residuos sólidos en el cantón Daule",
+  title: "Seguimiento e Indicadores para la Gestión de Residuos Domiciliarios",
+  description: "Plataforma integral para el monitoreo, reporte y gestión de residuos sólidos",
   generator: "v0.app",
-  keywords: ["residuos sólidos", "gestión ambiental", "Daule", "ecología", "sostenibilidad"],
+  keywords: ["residuos sólidos", "gestión ambiental", "ecología", "sostenibilidad"],
   authors: [{ name: "GAD Cantón Daule" }],
   openGraph: {
     type: "website",
     locale: "es_EC",
     url: "https://proyectoeconomiacircular.vercel.app",
-    title: "Gestión de Residuos Sólidos - Cantón Daule",
+    title: "Seguimiento e Indicadores para la Gestión de Residuos Domiciliarios",
     description: "Plataforma integral para el monitoreo, reporte y gestión de residuos sólidos",
   },
   icons: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     apple: "/favicon.png",
   },
   verification: {
-    google: "googlea744b28f93d9217a", 
+    google: "RoJsAFLZzcRQL8gD34Grz6w9s5l_XbRz_rnhY4fRvWk",
   }
 }
 
