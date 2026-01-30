@@ -9,8 +9,8 @@ interface UseInactivityTimeoutProps {
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 0.10,
-  warningMinutes = 0.5
+  timeoutMinutes = 0.05,
+  warningMinutes = 0.02
 }: UseInactivityTimeoutProps) {
   const [showWarning, setShowWarning] = useState(false)
   const [remainingTime, setRemainingTime] = useState(0)
