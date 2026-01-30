@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useRouter } from "next/navigation"
 
 interface UseInactivityTimeoutProps {
   timeoutMinutes: number
@@ -9,280 +10,172 @@ interface UseInactivityTimeoutProps {
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 0.1,
-  warningMinutes = 0.06
+  timeoutMinutes,
+  warningMinutes,
 }: UseInactivityTimeoutProps) {
-  const [showWarning, setShowWarning] = useState(false)
+  const [inactive, setInactive] = useState(false)
   const [remainingTime, setRemainingTime] = useState(0)
-  const [userActivity, setUserActivity] = useState<Date>(new Date())
-  
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const warningRef = useRef<NodeJS.Timeout | null>(null)
-  const supabase = createClient()
+  const [showWarning, setShowWarning] = useState(false)
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null)
+  const [warningId, setWarningId] = useState<NodeJS.Timeout | null>(null)
+  const router = useRouter()
 
-  const timeoutSeconds = timeoutMinutes * 60
-  const warningSeconds = warningMinutes * 60
-
-  // Función para registrar actividad en Supabase
-  const updateLastActivityInSupabase = useCallback(async () => {
+  // Función para actualizar la última actividad en Supabase
+  const updateUserActivity = useCallback(async () => {
     try {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
       if (user) {
-        // Actualizar el campo last_activity_at en la tabla profiles
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            last_activity_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-
-        if (error) {
-          console.error("Error actualizando actividad:", error)
-          
-          // Si no existe el campo, intentar usar last_sign_in_at
-          await supabase
-            .from('profiles')
-            .update({ 
-              last_sign_in_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id)
-        }
-        
-        // También registrar en una tabla de auditoría si lo deseas
-        await supabase
-          .from('user_activity_logs') // Crear esta tabla si quieres logs detallados
-          .insert({
-            user_id: user.id,
-            activity_type: 'user_interaction',
-            created_at: new Date().toISOString()
-          })
-      }
-    } catch (error) {
-      console.error("Error en updateLastActivityInSupabase:", error)
-    }
-  }, [supabase])
-
-  // Función para verificar si la sesión ha expirado
-  const checkSessionExpiration = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) return true // No hay usuario, considerar expirada
-
-      // Obtener el último registro de actividad del perfil
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('last_activity_at, last_sign_in_at')
-        .eq('id', user.id)
-        .single()
-
-      if (error) {
-        console.error("Error obteniendo perfil:", error)
-        return false // En caso de error, no cerrar sesión
-      }
-
-      // Usar last_activity_at si existe, sino last_sign_in_at
-      const lastActivityTime = profile.last_activity_at || profile.last_sign_in_at
-      
-      if (!lastActivityTime) {
-        // Si nunca ha tenido actividad, usar fecha actual menos el timeout
-        return false
-      }
-
-      const now = new Date()
-      const lastActivity = new Date(lastActivityTime)
-      const diffMinutes = (now.getTime() - lastActivity.getTime()) / (1000 * 60)
-
-      // Si ha pasado más del tiempo permitido, cerrar sesión
-      return diffMinutes > timeoutMinutes
-
-    } catch (error) {
-      console.error("Error en checkSessionExpiration:", error)
-      return false
-    }
-  }, [supabase, timeoutMinutes])
-
-  // Registrar actividad local y en Supabase
-  const recordActivity = useCallback(async () => {
-    setUserActivity(new Date())
-    
-    if (showWarning) {
-      setShowWarning(false)
-      if (warningRef.current) clearTimeout(warningRef.current)
-    }
-    
-    // Reiniciar timeouts
-    resetTimeouts()
-    
-    // Actualizar en Supabase
-    await updateLastActivityInSupabase()
-  }, [showWarning, updateLastActivityInSupabase])
-
-  // Extender sesión
-  const extendSession = useCallback(() => {
-    recordActivity()
-    setShowWarning(false)
-  }, [recordActivity])
-
-  // Cerrar sesión forzadamente
-  const forceLogout = useCallback(async () => {
-    try {
-      // Primero registrar el logout
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (user) {
+        // Actualizar en la tabla profiles
         await supabase
           .from('profiles')
           .update({ 
-            status: 'inactive', // Opcional: cambiar estado
+            last_activity: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id)
       }
-      
-      // Luego cerrar sesión
-      await supabase.auth.signOut()
-      
-      // Redirigir a login con mensaje
-      window.location.href = '/login?message=session_expired'
-      
     } catch (error) {
-      console.error("Error en forceLogout:", error)
-      // Forzar redirección aunque falle
-      window.location.href = '/login'
+      console.error("Error actualizando actividad:", error)
     }
-  }, [supabase])
-
-  // Cerrar sesión manual
-  const logout = useCallback(async () => {
-    setShowWarning(false)
-    await forceLogout()
-  }, [forceLogout])
-
-  // Limpiar timeouts
-  const clearTimeouts = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    if (warningRef.current) clearTimeout(warningRef.current)
   }, [])
 
-  // Reiniciar timeouts
-  const resetTimeouts = useCallback(() => {
-    clearTimeouts()
-
-    // Timeout para advertencia
-    warningRef.current = setTimeout(() => {
-      setShowWarning(true)
-      const startTime = timeoutSeconds - warningSeconds
-      setRemainingTime(startTime)
-    }, (timeoutSeconds - warningSeconds) * 1000)
-
-    // Timeout para cerrar sesión
-    timeoutRef.current = setTimeout(async () => {
-      // Verificar una última vez antes de cerrar
-      const isExpired = await checkSessionExpiration()
-      if (isExpired) {
-        await forceLogout()
-      } else {
-        // Si no ha expirado según Supabase, reiniciar
-        resetTimeouts()
-      }
-    }, timeoutSeconds * 1000)
-  }, [timeoutSeconds, warningSeconds, clearTimeouts, checkSessionExpiration, forceLogout])
-
-  // Actualizar tiempo restante
-  useEffect(() => {
-    if (!showWarning) return
-
-    const interval = setInterval(() => {
-      setRemainingTime(prev => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          return 0
+  // Función para verificar la última actividad del servidor
+  const checkServerActivity = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('last_activity')
+          .eq('id', user.id)
+          .single()
+        
+        if (profile?.last_activity) {
+          const lastActivity = new Date(profile.last_activity)
+          const now = new Date()
+          const diffMinutes = (now.getTime() - lastActivity.getTime()) / (1000 * 60)
+          
+          // Si hay más de timeoutMinutes de inactividad en el servidor
+          if (diffMinutes > timeoutMinutes) {
+            logout()
+          }
         }
-        return prev - 1
-      })
-    }, 1000)
+      }
+    } catch (error) {
+      console.error("Error verificando actividad del servidor:", error)
+    }
+  }, [timeoutMinutes])
 
-    return () => clearInterval(interval)
-  }, [showWarning])
+  const startTimer = useCallback(() => {
+    // Limpiar timers anteriores
+    if (timeoutId) clearTimeout(timeoutId)
+    if (warningId) clearTimeout(warningId)
 
-  // Verificar sesión periódicamente
+    // Actualizar actividad en base de datos
+    updateUserActivity()
+
+    // Timer para mostrar advertencia
+    const warningTime = (timeoutMinutes - warningMinutes) * 60 * 1000
+    const warningTimer = setTimeout(() => {
+      setShowWarning(true)
+      setRemainingTime(warningMinutes * 60)
+      
+      // Contador regresivo para la advertencia
+      const countdownInterval = setInterval(() => {
+        setRemainingTime(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval)
+            logout()
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      // Guardar referencia al intervalo
+      setWarningId(countdownInterval as unknown as NodeJS.Timeout)
+    }, warningTime)
+
+    // Timer para cierre de sesión completo
+    const logoutTimer = setTimeout(() => {
+      logout()
+    }, timeoutMinutes * 60 * 1000)
+
+    setTimeoutId(logoutTimer)
+  }, [timeoutMinutes, warningMinutes, updateUserActivity])
+
+  const resetTimer = useCallback(() => {
+    setShowWarning(false)
+    setInactive(false)
+    if (warningId) {
+      clearInterval(warningId)
+      setWarningId(null)
+    }
+    startTimer()
+  }, [startTimer, warningId])
+
+  const extendSession = useCallback(async () => {
+    await updateUserActivity()
+    resetTimer()
+  }, [updateUserActivity, resetTimer])
+
+  const logout = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      router.push("/login?message=session_expired")
+    } catch (error) {
+      console.error("Error cerrando sesión:", error)
+    }
+  }, [router])
+
+  // Setup de event listeners para actividad
   useEffect(() => {
-    const checkSession = async () => {
-      const isExpired = await checkSessionExpiration()
-      if (isExpired) {
-        await forceLogout()
+    const handleActivity = () => {
+      if (!inactive) {
+        resetTimer()
       }
     }
 
-    // Verificar cada 5 minutos
-    const sessionCheckInterval = setInterval(checkSession, 5 * 60 * 1000)
-
-    return () => clearInterval(sessionCheckInterval)
-  }, [checkSessionExpiration, forceLogout])
-
-  // Configurar listeners de actividad
-  useEffect(() => {
-    const activityEvents = [
+    // Eventos que indican actividad del usuario
+    const events = [
       'mousedown', 'mousemove', 'keydown', 
-      'touchstart', 'scroll', 'click',
-      'wheel', 'input', 'change'
+      'scroll', 'touchstart', 'click'
     ]
 
-    const handleActivity = () => recordActivity()
-
-    // Agregar listeners
-    activityEvents.forEach(event => {
-      document.addEventListener(event, handleActivity, { passive: true })
+    events.forEach(event => {
+      window.addEventListener(event, handleActivity)
     })
 
-    // Registrar actividad en intervalos para actividad de fondo
-    const activityInterval = setInterval(() => {
-      if (document.hasFocus()) {
-        recordActivity()
-      }
-    }, 2 * 60 * 1000) // Cada 2 minutos
+    // Verificar actividad del servidor periódicamente
+    const serverCheckInterval = setInterval(() => {
+      checkServerActivity()
+    }, 60000) // Cada minuto
 
-    // Inicializar timeouts
-    resetTimeouts()
+    // Iniciar el timer
+    startTimer()
 
     return () => {
-      activityEvents.forEach(event => {
-        document.removeEventListener(event, handleActivity)
+      events.forEach(event => {
+        window.removeEventListener(event, handleActivity)
       })
-      clearTimeouts()
-      clearInterval(activityInterval)
+      
+      if (timeoutId) clearTimeout(timeoutId)
+      if (warningId) clearInterval(warningId)
+      clearInterval(serverCheckInterval)
     }
-  }, [recordActivity, resetTimeouts, clearTimeouts])
-
-  // Manejar cambios de pestaña/ventana
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        recordActivity()
-      }
-    }
-
-    const handleFocus = () => recordActivity()
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [recordActivity])
+  }, [startTimer, resetTimer, checkServerActivity])
 
   return {
     showWarning,
     remainingTime,
     extendSession,
     logout,
-    recordActivity,
-    userActivity
+    inactive,
+    setInactive
   }
 }
