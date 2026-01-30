@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 
 export function useInactivityTimeout({
-  timeoutMinutes = 30,
+  timeoutMinutes = 1,
   warningMinutes = 5
 }: {
   timeoutMinutes: number
