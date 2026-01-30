@@ -1,11 +1,20 @@
 "use client"
 
 import React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
-import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Clock, LogOut } from "lucide-react"
 
 interface SessionTimeoutProviderProps {
   children: React.ReactNode
@@ -14,141 +23,205 @@ interface SessionTimeoutProviderProps {
 export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const pathname = usePathname()
-
-  // Rutas públicas que no requieren timeout
-  const publicRoutes = [
-    "/login", 
-    "/auth/forgot-password", 
-    "/auth/reset-password", 
-    "/auth/callback",
-    "/",
-    "/register"
-  ]
+  const [showWarning, setShowWarning] = useState(false)
+  const [remainingTime, setRemainingTime] = useState(0)
   
-  const isPublicRoute = publicRoutes.some((route) => {
-    if (route === "/") return pathname === "/"
-    return pathname?.startsWith(route)
-  })
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const warningRef = useRef<NodeJS.Timeout | null>(null)
+  const activityIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  
+  const pathname = usePathname()
+  const supabase = createClient()
 
-  // Configurar diferentes tiempos por rol
-  const getTimeoutConfig = () => {
-    switch(userRole) {
-      case 'admin':
-        return { timeoutMinutes: 0.1, warningMinutes: 0.05 } // 2 horas para admin
-      case 'docente':
-        return { timeoutMinutes: 0.1, warningMinutes: 0.05 } // 1 hora para docentes
-      case 'estudiante':
-        return { timeoutMinutes: 0.1, warningMinutes: 0.05} // 30 minutos para estudiantes
-      default:
-        return { timeoutMinutes: 0.1, warningMinutes: 0.05} // Default
-    }
-  }
+  // Rutas públicas
+  const publicRoutes = ["/login", "/auth/forgot-password", "/auth/reset-password", "/auth/callback", "/"]
+  const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
 
-  const config = getTimeoutConfig()
+  // Configuración
+  const TIMEOUT_MINUTES = 0.5 // 30 segundos para pruebas - cambia a 30
+  const WARNING_MINUTES = 0.25 // 15 segundos para pruebas - cambia a 5
+  const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000
+  const WARNING_MS = WARNING_MINUTES * 60 * 1000
 
-  const {
-    showWarning, 
-    remainingTime, 
-    extendSession, 
-    logout,
-    recordActivity
-  } = useInactivityTimeout({
-    timeoutMinutes: config.timeoutMinutes,
-    warningMinutes: config.warningMinutes
-  })
-
-  useEffect(() => {
-    const checkAuthAndProfile = async () => {
-      try {
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        const isAuth = !!session
-        
-        setIsAuthenticated(isAuth)
-        
-        if (isAuth && session.user) {
-          // Obtener el rol del usuario desde la tabla profiles
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-          
-          if (!error && profile) {
-            setUserRole(profile.role)
-            console.log(`Usuario autenticado con rol: ${profile.role}, timeout: ${config.timeoutMinutes}min`)
-          }
-          
-          // Registrar actividad inicial con retardo
-          setTimeout(() => {
-            recordActivity()
-          }, 2000)
-        }
-      } catch (error) {
-        console.error("Error verificando autenticación:", error)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuthAndProfile()
-
-    // Escuchar cambios de autenticación
-    const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const isAuth = !!session
-      setIsAuthenticated(isAuth)
-      
-      if (isAuth && session?.user) {
-        // Obtener perfil cuando inicia sesión
-        const { data: profile } = await supabase
+  // Registrar actividad
+  const recordActivity = useCallback(async () => {
+    if (!isAuthenticated) return
+    
+    console.log("Actividad registrada")
+    
+    // Limpiar timeouts anteriores
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (warningRef.current) clearTimeout(warningRef.current)
+    if (showWarning) setShowWarning(false)
+    
+    // Configurar nuevo timeout de advertencia
+    warningRef.current = setTimeout(() => {
+      console.log("Mostrando advertencia")
+      setShowWarning(true)
+      setRemainingTime(Math.floor((TIMEOUT_MS - WARNING_MS) / 1000))
+    }, TIMEOUT_MS - WARNING_MS)
+    
+    // Configurar timeout de cierre de sesión
+    timeoutRef.current = setTimeout(() => {
+      console.log("Cerrando sesión por inactividad")
+      handleLogout()
+    }, TIMEOUT_MS)
+    
+    // Actualizar en la base de datos
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
           .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-        
-        if (profile) {
-          setUserRole(profile.role)
-        }
-        
-        // Registrar actividad cuando inicia sesión
-        setTimeout(() => {
-          recordActivity()
-        }, 1000)
-      } else {
-        setUserRole(null)
+          .update({ 
+            last_sign_in_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
       }
-      
-      setIsLoading(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
+    } catch (error) {
+      console.error("Error actualizando actividad:", error)
     }
-  }, [recordActivity, config.timeoutMinutes])
+  }, [isAuthenticated, showWarning, supabase])
 
-  // No mostrar nada durante la carga inicial
-  if (isLoading) {
-    return <>{children}</>
+  // Cerrar sesión
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login?message=session_expired'
+  }, [supabase])
+
+  // Extender sesión
+  const extendSession = useCallback(() => {
+    console.log("Extendiendo sesión")
+    setShowWarning(false)
+    recordActivity()
+  }, [recordActivity])
+
+  // Configurar listeners de actividad
+  const setupActivityListeners = useCallback(() => {
+    if (!isAuthenticated) return
+    
+    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll', 'click']
+    
+    const handleActivity = () => recordActivity()
+    
+    events.forEach(event => {
+      document.addEventListener(event, handleActivity, { passive: true })
+    })
+    
+    // Iniciar el primer registro de actividad
+    recordActivity()
+    
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, handleActivity)
+      })
+    }
+  }, [isAuthenticated, recordActivity])
+
+  // Verificar autenticación
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsAuthenticated(!!session)
+      setIsLoading(false)
+      console.log("Sesión activa:", !!session)
+    }
+    
+    checkAuth()
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session)
+      console.log(`Auth change: ${event}, session: ${!!session}`)
+    })
+    
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  // Iniciar/Detener listeners según autenticación
+  useEffect(() => {
+    if (isAuthenticated && !isPublicRoute) {
+      console.log("Iniciando listeners de inactividad")
+      const cleanup = setupActivityListeners()
+      
+      // Actualizar tiempo restante cada segundo cuando hay advertencia
+      activityIntervalRef.current = setInterval(() => {
+        if (showWarning) {
+          setRemainingTime(prev => {
+            if (prev <= 1) {
+              return 0
+            }
+            return prev - 1
+          })
+        }
+      }, 1000)
+      
+      return () => {
+        if (cleanup) cleanup()
+        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+        if (warningRef.current) clearTimeout(warningRef.current)
+        if (activityIntervalRef.current) clearInterval(activityIntervalRef.current)
+        console.log("Limpiando listeners de inactividad")
+      }
+    }
+  }, [isAuthenticated, isPublicRoute, setupActivityListeners, showWarning])
+
+  // Formatear tiempo
+  const formatTime = () => {
+    const minutes = Math.floor(remainingTime / 60)
+    const seconds = remainingTime % 60
+    if (minutes > 0) {
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`
+    }
+    return `${seconds} segundos`
   }
 
-  // No aplicar timeout en rutas públicas o si no está autenticado
-  if (isPublicRoute || !isAuthenticated) {
+  if (isLoading) {
     return <>{children}</>
   }
 
   return (
     <>
       {children}
-      <InactivityWarningDialog
-        open={showWarning}
-        remainingTime={remainingTime}
-        onExtend={extendSession}
-        onLogout={logout}
-      />
+      {isAuthenticated && !isPublicRoute && (
+        <AlertDialog open={showWarning}>
+          <AlertDialogContent className="max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+                <Clock className="h-5 w-5" />
+                Sesión por expirar
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <p>
+                  Tu sesión está a punto de cerrarse por inactividad.
+                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                  <p className="text-sm text-amber-700 mb-1">Tiempo restante:</p>
+                  <p className="text-2xl font-bold text-amber-800">{formatTime()}</p>
+                </div>
+                <p className="text-sm">
+                  Haz clic en &quot;Continuar sesión&quot; para mantener tu sesión activa.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel 
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Cerrar sesión
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={extendSession}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Continuar sesión
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   )
 }
