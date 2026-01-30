@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
+import { DebugPanel } from "@/components/debug-panel" // Importar el componente separado
 
 interface SessionTimeoutProviderProps {
   children: React.ReactNode
@@ -24,10 +25,12 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     remainingTime, 
     extendSession, 
     logout,
-    DebugPanel // Agregar esto
+    getDebugInfo,
+    simulateActivity,
+    forceLogout
   } = useInactivityTimeout({
-    timeoutMinutes: isDevelopment ? 0.1 : 30, // 6 segundos en desarrollo
-    warningMinutes: isDevelopment ? 0.05 : 5   // 3 segundos de advertencia
+    timeoutMinutes: isDevelopment ? 0.25 : 30, // 15 segundos en desarrollo
+    warningMinutes: isDevelopment ? 0.1 : 5    // 6 segundos de advertencia
   })
 
   // Rutas públicas
@@ -91,8 +94,15 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         onExtend={extendSession}
         onLogout={logout}
       />
-      {/* Panel de debug solo en desarrollo */}
-      {process.env.NODE_ENV === 'development' && <DebugPanel />}
+      
+      {/* Panel de debug solo en desarrollo y cuando esté autenticado */}
+      {isDevelopment && isAuthenticated && (
+        <DebugPanel 
+          debugInfo={getDebugInfo()}
+          onSimulateActivity={simulateActivity}
+          onForceLogout={forceLogout}
+        />
+      )}
     </>
   )
 }
