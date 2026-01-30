@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
-import { DebugPanel } from "@/components/debug-panel" // Importar el componente separado
 
 interface SessionTimeoutProviderProps {
   children: React.ReactNode
