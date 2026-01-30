@@ -1,139 +1,278 @@
 "use client"
 
-import { useEffect, useCallback, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 
-interface UseInactivityTimeoutOptions {
-  timeoutMinutes?: number
-  warningMinutes?: number
-  onWarning?: () => void
-  onTimeout?: () => void
+interface UseInactivityTimeoutProps {
+  timeoutMinutes: number
+  warningMinutes: number
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 30,
-  warningMinutes = 5,
-  onWarning,
-  onTimeout,
-}: UseInactivityTimeoutOptions = {}) {
-  const router = useRouter()
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  timeoutMinutes = 1, // 1 minuto para testing
+  warningMinutes = 0.5 // 30 segundos de advertencia
+}: UseInactivityTimeoutProps) {
+  const [isActive, setIsActive] = useState(true)
   const [showWarning, setShowWarning] = useState(false)
-  const [remainingTime, setRemainingTime] = useState(warningMinutes * 60)
-  const countdownRef = useRef<NodeJS.Timeout | null>(null)
+  const [remainingTime, setRemainingTime] = useState(0)
+  const [debug, setDebug] = useState<string[]>([])
 
-  const timeoutMs = timeoutMinutes * 60 * 1000
-  const warningMs = (timeoutMinutes - warningMinutes) * 60 * 1000
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const warningRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const supabase = createClient()
 
-  const logout = useCallback(async () => {
-    try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-      router.push("/login?reason=inactivity")
-    } catch (error) {
-      console.error("Error al cerrar sesion:", error)
-      router.push("/login?reason=inactivity")
+  // Calcular tiempos en segundos
+  const timeoutSeconds = timeoutMinutes * 60
+  const warningSeconds = warningMinutes * 60
+
+  // Función para agregar logs de depuración
+  const addDebug = useCallback((message: string) => {
+    console.log(`[Timeout Debug] ${message}`)
+    setDebug(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
+  }, [])
+
+  // Función para registrar actividad
+  const recordActivity = useCallback(async () => {
+    addDebug(`Actividad detectada - Reiniciando timers`)
+    setIsActive(true)
+    
+    if (showWarning) {
+      addDebug(`Advertencia cerrada por actividad`)
+      setShowWarning(false)
+      if (warningRef.current) clearTimeout(warningRef.current)
     }
-  }, [router])
+    
+    // Reiniciar todos los timeouts
+    resetTimeouts()
+    
+    // Actualizar last_sign_in_at en la tabla profiles
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        addDebug(`Usuario encontrado: ${user.email}`)
+        
+        const updateResult = await supabase
+          .from('profiles')
+          .update({ 
+            last_sign_in_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
 
-  const resetTimers = useCallback(() => {
-    // Limpiar timers existentes
+        if (updateResult.error) {
+          addDebug(`Error actualizando perfil: ${updateResult.error.message}`)
+        } else {
+          addDebug(`Perfil actualizado exitosamente`)
+        }
+      } else {
+        addDebug(`No hay usuario autenticado`)
+      }
+    } catch (error) {
+      addDebug(`Error registrando actividad: ${error}`)
+      console.error("Error registrando actividad:", error)
+    }
+  }, [showWarning, supabase, addDebug])
+
+  // Función para extender sesión
+  const extendSession = useCallback(() => {
+    addDebug(`Usuario extendió sesión manualmente`)
+    recordActivity()
+    setShowWarning(false)
+  }, [recordActivity, addDebug])
+
+  // Función para cerrar sesión
+  const logout = useCallback(async () => {
+    addDebug(`Cerrando sesión por inactividad`)
+    setShowWarning(false)
+    await supabase.auth.signOut()
+    window.location.href = '/login?message=session_expired'
+  }, [supabase, addDebug])
+
+  // Limpiar timeouts
+  const clearTimeouts = useCallback(() => {
+    addDebug(`Limpiando timeouts anteriores`)
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
-    if (warningTimeoutRef.current) {
-      clearTimeout(warningTimeoutRef.current)
+    if (warningRef.current) {
+      clearTimeout(warningRef.current)
+      warningRef.current = null
     }
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
     }
+  }, [addDebug])
 
-    // Ocultar advertencia si estaba visible
-    setShowWarning(false)
-    setRemainingTime(warningMinutes * 60)
+  // Reiniciar timeouts
+  const resetTimeouts = useCallback(() => {
+    addDebug(`Reiniciando timeouts: ${timeoutSeconds}s total, ${warningSeconds}s advertencia`)
+    clearTimeouts()
 
-    // Configurar timer de advertencia
-    warningTimeoutRef.current = setTimeout(() => {
+    // Timeout para mostrar advertencia
+    const warningTimeoutMs = (timeoutSeconds - warningSeconds) * 1000
+    addDebug(`Advertencia programada en: ${warningTimeoutMs/1000}s`)
+    
+    warningRef.current = setTimeout(() => {
+      addDebug(`Mostrando advertencia de inactividad`)
       setShowWarning(true)
-      setRemainingTime(warningMinutes * 60)
-      onWarning?.()
+      setRemainingTime(warningSeconds)
+    }, warningTimeoutMs)
 
-      // Iniciar cuenta regresiva
-      countdownRef.current = setInterval(() => {
-        setRemainingTime((prev) => {
-          if (prev <= 1) {
-            if (countdownRef.current) {
-              clearInterval(countdownRef.current)
-            }
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }, warningMs)
-
-    // Configurar timer de cierre de sesion
+    // Timeout para cerrar sesión
+    const logoutTimeoutMs = timeoutSeconds * 1000
+    addDebug(`Cierre de sesión programado en: ${logoutTimeoutMs/1000}s`)
+    
     timeoutRef.current = setTimeout(() => {
-      onTimeout?.()
+      addDebug(`Timeout alcanzado - ejecutando logout`)
       logout()
-    }, timeoutMs)
-  }, [timeoutMs, warningMs, warningMinutes, logout, onWarning, onTimeout])
+    }, logoutTimeoutMs)
+  }, [timeoutSeconds, warningSeconds, logout, clearTimeouts, addDebug])
 
-  const extendSession = useCallback(() => {
-    setShowWarning(false)
-    resetTimers()
-  }, [resetTimers])
-
+  // Actualizar tiempo restante cada segundo cuando se muestra la advertencia
   useEffect(() => {
-    // Eventos que indican actividad del usuario
+    if (!showWarning) return
+
+    addDebug(`Iniciando cuenta regresiva: ${remainingTime}s restantes`)
+    
+    intervalRef.current = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 1) {
+          addDebug(`Tiempo de advertencia agotado`)
+          if (intervalRef.current) clearInterval(intervalRef.current)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [showWarning, addDebug])
+
+  // Configurar listeners de actividad
+  useEffect(() => {
+    addDebug(`Configurando listeners de actividad`)
+    
     const activityEvents = [
-      "mousedown",
-      "mousemove",
-      "keydown",
-      "scroll",
-      "touchstart",
-      "click",
-      "wheel",
+      'mousedown',
+      'mousemove',
+      'keydown',
+      'touchstart',
+      'scroll',
+      'click'
     ]
 
     const handleActivity = () => {
-      // Solo resetear si no estamos en la pantalla de advertencia
-      if (!showWarning) {
-        resetTimers()
-      }
+      addDebug(`Evento de actividad capturado`)
+      recordActivity()
     }
 
     // Agregar listeners
-    activityEvents.forEach((event) => {
+    activityEvents.forEach(event => {
       document.addEventListener(event, handleActivity, { passive: true })
+      addDebug(`Listener agregado para: ${event}`)
     })
 
-    // Iniciar timers
-    resetTimers()
+    // Inicializar timeouts
+    addDebug(`Inicializando timeouts por primera vez`)
+    resetTimeouts()
 
-    // Cleanup
     return () => {
-      activityEvents.forEach((event) => {
+      addDebug(`Limpiando listeners`)
+      activityEvents.forEach(event => {
         document.removeEventListener(event, handleActivity)
       })
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      if (warningTimeoutRef.current) {
-        clearTimeout(warningTimeoutRef.current)
-      }
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current)
+      
+      clearTimeouts()
+    }
+  }, [recordActivity, resetTimeouts, clearTimeouts, addDebug])
+
+  // Verificar sesión al cargar/cambiar pestaña
+  useEffect(() => {
+    addDebug(`Configurando listeners de visibilidad`)
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        addDebug(`Página visible nuevamente`)
+        recordActivity()
       }
     }
-  }, [resetTimers, showWarning])
+
+    const handleFocus = () => {
+      addDebug(`Ventana enfocada`)
+      recordActivity()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [recordActivity, addDebug])
+
+  // Componente de depuración (solo para desarrollo)
+  const DebugPanel = () => {
+    if (process.env.NODE_ENV !== 'development') return null
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        right: 0,
+        background: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '10px',
+        fontSize: '12px',
+        maxWidth: '400px',
+        maxHeight: '200px',
+        overflow: 'auto',
+        zIndex: 9999
+      }}>
+        <h4>Debug Timeout:</h4>
+        <div>Timeout: {timeoutMinutes} min</div>
+        <div>Warning: {warningMinutes} min</div>
+        <div>Mostrando advertencia: {showWarning ? 'Sí' : 'No'}</div>
+        <div>Tiempo restante: {remainingTime}s</div>
+        <button 
+          onClick={() => recordActivity()} 
+          style={{margin: '5px', padding: '5px'}}
+        >
+          Simular Actividad
+        </button>
+        <button 
+          onClick={() => logout()} 
+          style={{margin: '5px', padding: '5px'}}
+        >
+          Forzar Logout
+        </button>
+        <div style={{marginTop: '10px'}}>
+          <strong>Logs:</strong>
+          {debug.slice(-5).map((log, i) => (
+            <div key={i} style={{borderBottom: '1px solid #444', padding: '2px'}}>
+              {log}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return {
+    isActive,
     showWarning,
     remainingTime,
     extendSession,
     logout,
+    recordActivity,
+    DebugPanel // Exportar el panel de debug
   }
 }
