@@ -2,47 +2,133 @@
 
 import React from "react"
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { useSimpleTimeout } from "@/hooks/use-simple-timeout"
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
 
-export function SessionTimeoutProvider({ children }: React.PropsWithChildren) {
-  const [hasSession, setHasSession] = useState(false)
-  const [checking, setChecking] = useState(true)
+interface SessionTimeoutProviderProps {
+  children: React.ReactNode
+}
 
-  const { showWarning, timeLeft, logout, resetTimer } = useSimpleTimeout()
+export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const pathname = usePathname()
 
-  const extendSession = () => {
-    console.log("✅ Usuario extendió sesión")
-    resetTimer()
-  }
+  // Rutas públicas que no requieren timeout
+  const publicRoutes = [
+    "/login", 
+    "/auth/forgot-password", 
+    "/auth/reset-password", 
+    "/auth/callback",
+    "/",
+    "/register"
+  ]
+  
+  const isPublicRoute = publicRoutes.some((route) => {
+    if (route === "/") return pathname === "/"
+    return pathname?.startsWith(route)
+  })
+
+  const {
+    showWarning, 
+    remainingTime, 
+    extendSession, 
+    logout,
+    recordActivity
+  } = useInactivityTimeout({
+    timeoutMinutes: 30,
+    warningMinutes: 5
+  })
 
   useEffect(() => {
-    const supabase = createClient()
-    
-    const check = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log("🔍 Sesión encontrada:", !!session)
-      setHasSession(!!session)
-      setChecking(false)
+    const checkAuthAndProfile = async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        const isAuth = !!session
+        
+        setIsAuthenticated(isAuth)
+        
+        if (isAuth && session.user) {
+          // Obtener el rol del usuario desde la tabla profiles
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+          
+          if (!error && profile) {
+            setUserRole(profile.role)
+            console.log(`Usuario autenticado con rol: ${profile.role}`)
+          }
+          
+          // Registrar actividad inicial con retardo
+          setTimeout(() => {
+            recordActivity()
+            console.log("Actividad inicial registrada")
+          }, 2000)
+        }
+      } catch (error) {
+        console.error("Error verificando autenticación:", error)
+        setIsAuthenticated(false)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    
-    check()
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      check()
-    })
-    
-    return () => subscription.unsubscribe()
-  }, [])
 
-  if (checking) {
+    checkAuthAndProfile()
+
+    // Escuchar cambios de autenticación
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const isAuth = !!session
+      setIsAuthenticated(isAuth)
+      
+      if (isAuth && session?.user) {
+        // Obtener perfil cuando inicia sesión
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (profile) {
+          setUserRole(profile.role)
+        }
+        
+        // Registrar actividad cuando inicia sesión
+        setTimeout(() => {
+          recordActivity()
+          console.log("Actividad después de login registrada")
+        }, 1000)
+      } else {
+        setUserRole(null)
+      }
+      
+      setIsLoading(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [recordActivity])
+
+  // No mostrar nada durante la carga inicial
+  if (isLoading) {
     return <>{children}</>
   }
 
-  console.log("🎯 Estado final - Sesión:", hasSession)
+  // No aplicar timeout en rutas públicas o si no está autenticado
+  if (isPublicRoute || !isAuthenticated) {
+    return <>{children}</>
+  }
 
-  if (!hasSession) {
+  // (Opcional) Podrías excluir ciertos roles si quieres
+  const excludedRoles = ['admin'] // Los admins no tienen timeout
+  if (userRole && excludedRoles.includes(userRole)) {
     return <>{children}</>
   }
 
@@ -51,7 +137,7 @@ export function SessionTimeoutProvider({ children }: React.PropsWithChildren) {
       {children}
       <InactivityWarningDialog
         open={showWarning}
-        remainingTime={timeLeft}
+        remainingTime={remainingTime}
         onExtend={extendSession}
         onLogout={logout}
       />
