@@ -39,8 +39,8 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     logout,
     recordActivity
   } = useInactivityTimeout({
-    timeoutMinutes: 0.10,
-    warningMinutes: 0.2
+    timeoutMinutes: 0.05,
+    warningMinutes: 0.02
   })
 
   useEffect(() => {
