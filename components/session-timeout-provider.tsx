@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -17,18 +16,43 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
 
-  // Rutas publicas que no requieren timeout
-  const publicRoutes = ["/login", "/auth/forgot-password", "/auth/reset-password", "/auth/callback"]
-  const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
+  // Para testing, usa tiempos cortos
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
+  const {
+    showWarning, 
+    remainingTime, 
+    extendSession, 
+    logout,
+    DebugPanel // Agregar esto
+  } = useInactivityTimeout({
+    timeoutMinutes: isDevelopment ? 0.1 : 30, // 6 segundos en desarrollo
+    warningMinutes: isDevelopment ? 0.05 : 5   // 3 segundos de advertencia
+  })
+
+  // Rutas públicas
+  const publicRoutes = [
+    "/login", 
+    "/auth/forgot-password", 
+    "/auth/reset-password", 
+    "/auth/callback",
+    "/"
+  ]
+  
+  const isPublicRoute = publicRoutes.some((route) => {
+    if (route === "/") return pathname === "/"
+    return pathname?.startsWith(route)
+  })
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
+        console.log("Session check:", session ? "Autenticado" : "No autenticado")
         setIsAuthenticated(!!session)
       } catch (error) {
-        console.error("Error verificando autenticacion:", error)
+        console.error("Error verificando autenticación:", error)
         setIsAuthenticated(false)
       } finally {
         setIsLoading(false)
@@ -37,10 +61,12 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
 
     checkAuth()
 
-    // Escuchar cambios de autenticacion
+    // Escuchar cambios de autenticación
     const supabase = createClient()
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session ? "Sesión activa" : "Sin sesión")
       setIsAuthenticated(!!session)
+      setIsLoading(false)
     })
 
     return () => {
@@ -48,17 +74,10 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
     }
   }, [])
 
-  const { showWarning, remainingTime, extendSession, logout } = useInactivityTimeout({
-    timeoutMinutes: 30,
-    warningMinutes: 5,
-  })
-
-  // No mostrar nada durante la carga inicial
   if (isLoading) {
     return <>{children}</>
   }
 
-  // No aplicar timeout en rutas publicas o si no esta autenticado
   if (isPublicRoute || !isAuthenticated) {
     return <>{children}</>
   }
@@ -72,6 +91,8 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         onExtend={extendSession}
         onLogout={logout}
       />
+      {/* Panel de debug solo en desarrollo */}
+      {process.env.NODE_ENV === 'development' && <DebugPanel />}
     </>
   )
 }
