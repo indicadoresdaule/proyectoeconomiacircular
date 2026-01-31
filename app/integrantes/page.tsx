@@ -659,7 +659,10 @@ function IntegranteCard({
 
   return (
     <div className="group relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-2">
-      {/* Badge de tipo */}
+     
+      
+      
+      {/* Badge de tipo 
       <div className="absolute top-4 left-4 z-10">
         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
           tipoConfig?.color || 'bg-gray-100 text-gray-800'
@@ -671,7 +674,9 @@ function IntegranteCard({
           {tipoConfig?.label}
         </span>
       </div>
+       */}
 
+      
       {/* Indicador de tarjeta propia - Solo visible si es dueño Y puede editar */}
       {isOwner && canEdit && (
         <div className="absolute top-4 right-4 z-10">
