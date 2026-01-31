@@ -1,33 +1,39 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { 
   User, Mail, Phone, Linkedin, 
   Users, Shield, Briefcase, GraduationCap,
-  Loader2, ExternalLink, Building
+  Loader2, ExternalLink, Building, Plus, Pencil, Trash2, X, Save, ImageIcon,
+  Eye, EyeOff
 } from "lucide-react"
-
-// Tipos
-type TipoIntegrante = "lider" | "tecnico" | "docente" | "estudiante"
-
-interface Integrante {
-  id: string
-  user_id?: string
-  nombre: string
-  descripcion: string
-  foto_url: string | null
-  email: string | null
-  telefono: string | null
-  linkedin: string | null
-  orcid: string | null
-  tipo: TipoIntegrante
-  institucion: string | null
-  orden: number
-  is_active: boolean
-}
+import { useUser } from "@/hooks/use-user"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import type { MemberCard, UserRole } from "@/lib/types/database"
 
 // Configuración de filtros
 const filtrosConfig = [
@@ -39,7 +45,7 @@ const filtrosConfig = [
     activeColor: "bg-blue-600 text-white"
   },
   {
-    id: "lider",
+    id: "admin",
     label: "Liderazgo",
     icon: Shield,
     color: "bg-purple-100 text-purple-700 hover:bg-purple-200",
@@ -47,7 +53,7 @@ const filtrosConfig = [
   },
   {
     id: "tecnico",
-    label: "Técnicos",
+    label: "Tecnicos",
     icon: Briefcase,
     color: "bg-green-100 text-green-700 hover:bg-green-200",
     activeColor: "bg-green-600 text-white"
@@ -68,87 +74,183 @@ const filtrosConfig = [
   }
 ]
 
-// Datos de ejemplo
-const integrantesEjemplo: Integrante[] = [
-  {
-    id: "1",
-    nombre: "Dr. Carlos Andrés Méndez",
-    descripcion: "Doctor en Ciencias Ambientales con 20 años de experiencia en gestión y liderazgo de equipos multidisciplinarios. Especializado en políticas ambientales y desarrollo sostenible.",
-    foto_url: null,
-    email: "carlos.mendez@ejemplo.com",
-    telefono: "+593 99 123 4567",
-    linkedin: "https://linkedin.com/in/carlos-mendez",
-    orcid: "https://orcid.org/0000-0002-1825-0097",
-    tipo: "lider",
-    institucion: "Universidad Central",
-    orden: 1,
-    is_active: true
-  },
-  {
-    id: "2",
-    nombre: "Ing. María Fernanda López",
-    descripcion: "Ingeniera ambiental especializada en sistemas de monitoreo y evaluación de impacto ambiental. Ha trabajado en más de 50 proyectos de conservación a nivel nacional.",
-    foto_url: null,
-    email: "maria.lopez@ejemplo.com",
-    telefono: "+593 98 765 4321",
-    linkedin: "https://linkedin.com/in/maria-lopez",
-    orcid: "https://orcid.org/0000-0001-2345-6789",
-    tipo: "tecnico",
-    institucion: "Ministerio del Ambiente",
-    orden: 2,
-    is_active: true
-  },
-  {
-    id: "3",
-    nombre: "Dra. Lucía Elizabeth Vargas",
-    descripcion: "Doctora en Biología con especialización en ecología de sistemas acuáticos y conservación. Publicó más de 30 artículos científicos en revistas internacionales.",
-    foto_url: null,
-    email: "lucia.vargas@ejemplo.com",
-    telefono: "+593 97 555 8888",
-    linkedin: "https://linkedin.com/in/lucia-vargas",
-    orcid: "https://orcid.org/0000-0003-4567-8901",
-    tipo: "docente",
-    institucion: "Universidad San Francisco",
-    orden: 3,
-    is_active: true
-  },
-  {
-    id: "4",
-    nombre: "Juan Pablo Ortega",
-    descripcion: "Estudiante de maestría en Ciencias Ambientales, investigador en tratamiento de aguas residuales. Actualmente desarrolla su tesis sobre bioremediación de ecosistemas acuáticos.",
-    foto_url: null,
-    email: "juan.ortega@ejemplo.com",
-    telefono: "+593 96 444 3333",
-    linkedin: "https://linkedin.com/in/juan-ortega",
-    orcid: "https://orcid.org/0000-0004-5678-9012",
-    tipo: "estudiante",
-    institucion: "Universidad Técnica",
-    orden: 4,
-    is_active: true
-  }
-]
-
-const titulosPorTipo: Record<TipoIntegrante, string> = {
-  lider: "Equipo de Liderazgo",
-  tecnico: "Especialistas Técnicos",
+const titulosPorTipo: Record<UserRole, string> = {
+  admin: "Equipo de Liderazgo",
+  tecnico: "Especialistas Tecnicos",
   docente: "Cuerpo Docente",
   estudiante: "Estudiantes Investigadores"
 }
 
+interface CardFormData {
+  nombre: string
+  descripcion: string
+  institucion: string
+  telefono: string
+  linkedin: string
+  orcid: string
+  foto_url: string
+}
+
+const initialFormData: CardFormData = {
+  nombre: "",
+  descripcion: "",
+  institucion: "",
+  telefono: "",
+  linkedin: "",
+  orcid: "",
+  foto_url: ""
+}
+
 export default function IntegrantesPage() {
-  const [integrantes, setIntegrantes] = useState<Integrante[]>([])
+  const { user, loading: userLoading } = useUser()
+  const [integrantes, setIntegrantes] = useState<MemberCard[]>([])
+  const [myCard, setMyCard] = useState<MemberCard | null>(null)
   const [loading, setLoading] = useState(true)
   const [filtroActivo, setFiltroActivo] = useState<string>("todos")
+  
+  // Estados para el modal de edicion/creacion
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState<CardFormData>(initialFormData)
+  const [formError, setFormError] = useState<string | null>(null)
 
-  // Simular carga de datos
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIntegrantes(integrantesEjemplo)
+  // Cargar tarjetas públicas
+  const fetchCards = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/member-cards")
+      const data = await response.json()
+      
+      if (response.ok) {
+        setIntegrantes(data.cards || [])
+      }
+    } catch (error) {
+      console.error("Error fetching cards:", error)
+    } finally {
       setLoading(false)
-    }, 800)
-    
-    return () => clearTimeout(timer)
+    }
   }, [])
+
+  // Cargar la tarjeta del usuario actual
+  const fetchMyCard = useCallback(async () => {
+    if (!user) {
+      setMyCard(null)
+      return
+    }
+    
+    try {
+      const response = await fetch("/api/member-cards?my-card=true")
+      const data = await response.json()
+      
+      if (response.ok) {
+        setMyCard(data.card || null)
+      }
+    } catch (error) {
+      console.error("Error fetching my card:", error)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchCards()
+  }, [fetchCards])
+
+  useEffect(() => {
+    if (!userLoading) {
+      fetchMyCard()
+    }
+  }, [user, userLoading, fetchMyCard])
+
+  // Abrir modal para crear
+  const handleCreate = () => {
+    setFormData(initialFormData)
+    setFormError(null)
+    setIsDialogOpen(true)
+  }
+
+  // Abrir modal para editar
+  const handleEdit = () => {
+    if (myCard) {
+      setFormData({
+        nombre: myCard.nombre || "",
+        descripcion: myCard.descripcion || "",
+        institucion: myCard.institucion || "",
+        telefono: myCard.telefono || "",
+        linkedin: myCard.linkedin || "",
+        orcid: myCard.orcid || "",
+        foto_url: myCard.foto_url || ""
+      })
+      setFormError(null)
+      setIsDialogOpen(true)
+    }
+  }
+
+  // Guardar tarjeta (crear o actualizar)
+  const handleSave = async () => {
+    setFormError(null)
+    
+    if (!formData.nombre.trim()) {
+      setFormError("El nombre es obligatorio")
+      return
+    }
+    
+    if (!formData.descripcion.trim()) {
+      setFormError("La descripcion es obligatoria")
+      return
+    }
+
+    setIsSubmitting(true)
+    
+    try {
+      const url = myCard ? `/api/member-cards/${myCard.id}` : "/api/member-cards"
+      const method = myCard ? "PUT" : "POST"
+      
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        setFormError(data.error || "Error al guardar la tarjeta")
+        return
+      }
+      
+      setIsDialogOpen(false)
+      await fetchCards()
+      await fetchMyCard()
+    } catch (error) {
+      console.error("Error saving card:", error)
+      setFormError("Error al guardar la tarjeta")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Eliminar tarjeta
+  const handleDelete = async () => {
+    if (!myCard) return
+    
+    setIsSubmitting(true)
+    
+    try {
+      const response = await fetch(`/api/member-cards/${myCard.id}`, {
+        method: "DELETE"
+      })
+      
+      if (response.ok) {
+        setIsDeleteDialogOpen(false)
+        setMyCard(null)
+        await fetchCards()
+      }
+    } catch (error) {
+      console.error("Error deleting card:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // Filtrar integrantes
   const integrantesFiltrados = filtroActivo === "todos" 
@@ -157,12 +259,13 @@ export default function IntegrantesPage() {
 
   // Agrupar por tipo para vista de "todos"
   const integrantesPorTipo = integrantesFiltrados.reduce((acc, integrante) => {
-    if (!acc[integrante.tipo]) {
-      acc[integrante.tipo] = []
+    const tipo = integrante.tipo || "estudiante"
+    if (!acc[tipo]) {
+      acc[tipo] = []
     }
-    acc[integrante.tipo].push(integrante)
+    acc[tipo].push(integrante)
     return acc
-  }, {} as Record<TipoIntegrante, Integrante[]>)
+  }, {} as Record<UserRole, MemberCard[]>)
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -184,6 +287,56 @@ export default function IntegrantesPage() {
               </p>
             </div>
 
+            {/* Boton para crear/editar mi tarjeta - Solo visible para usuarios logueados */}
+            {user && !userLoading && (
+              <div className="mb-8 flex justify-center">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row items-center gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="text-sm font-medium text-foreground">
+                      {myCard ? "Tu tarjeta de integrante" : "Aún no tienes una tarjeta"}
+                    </p>
+                    <p className="text-xs text-foreground/60">
+                      {myCard 
+                        ? "Puedes editar o eliminar tu tarjeta" 
+                        : "Crea tu tarjeta para aparecer en el equipo"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    {myCard ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEdit}
+                          className="gap-2 bg-transparent"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setIsDeleteDialogOpen(true)}
+                          className="gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Eliminar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleCreate}
+                        className="gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Crear mi tarjeta
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Filtros */}
             <div className="mb-12">
               <div className="flex flex-col items-center mb-6">
@@ -232,6 +385,12 @@ export default function IntegrantesPage() {
                 <p className="text-foreground/40 text-sm">
                   Los integrantes se mostrarán aquí una vez agregados al sistema.
                 </p>
+                {user && !myCard && (
+                  <Button onClick={handleCreate} className="mt-4 gap-2">
+                    <Plus className="w-4 h-4" />
+                    Sé el primero en crear tu tarjeta
+                  </Button>
+                )}
               </div>
             ) : (
               <>
@@ -240,20 +399,30 @@ export default function IntegrantesPage() {
                   <div>
                     <div className="mb-8 text-center">
                       <h2 className="text-2xl font-bold text-foreground mb-2">
-                        {titulosPorTipo[filtroActivo as TipoIntegrante]}
+                        {titulosPorTipo[filtroActivo as UserRole]}
                       </h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {integrantesFiltrados.map((integrante) => (
-                        <IntegranteCard key={integrante.id} integrante={integrante} />
+                        <IntegranteCard 
+                          key={integrante.id} 
+                          integrante={integrante}
+                          isOwner={user?.id === integrante.user_id}
+                          canEdit={user !== null} // Solo usuarios autenticados pueden ver opciones de edición
+                          onEdit={handleEdit}
+                          onDelete={() => setIsDeleteDialogOpen(true)}
+                        />
                       ))}
                     </div>
                   </div>
                 ) : (
                   // Vista de todos los integrantes agrupados por tipo
                   <div className="space-y-16">
-                    {Object.entries(integrantesPorTipo).map(([tipo, integrantesDelTipo]) => (
-                      integrantesDelTipo.length > 0 && (
+                    {(["admin", "tecnico", "docente", "estudiante"] as UserRole[]).map((tipo) => {
+                      const integrantesDelTipo = integrantesPorTipo[tipo] || []
+                      if (integrantesDelTipo.length === 0) return null
+                      
+                      return (
                         <div key={tipo}>
                           <div className="mb-8">
                             <div className="flex items-center gap-3 mb-2">
@@ -269,7 +438,7 @@ export default function IntegrantesPage() {
                               )}
                               <div className="flex items-center gap-3">
                                 <h2 className="text-2xl font-bold text-foreground">
-                                  {titulosPorTipo[tipo as TipoIntegrante]}
+                                  {titulosPorTipo[tipo]}
                                 </h2>
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
                                   {integrantesDelTipo.length} integrantes
@@ -279,12 +448,19 @@ export default function IntegrantesPage() {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {integrantesDelTipo.map((integrante) => (
-                              <IntegranteCard key={integrante.id} integrante={integrante} />
+                              <IntegranteCard 
+                                key={integrante.id} 
+                                integrante={integrante}
+                                isOwner={user?.id === integrante.user_id}
+                                canEdit={user !== null} // Solo usuarios autenticados pueden ver opciones de edición
+                                onEdit={handleEdit}
+                                onDelete={() => setIsDeleteDialogOpen(true)}
+                              />
                             ))}
                           </div>
                         </div>
                       )
-                    ))}
+                    })}
                   </div>
                 )}
               </>
@@ -294,19 +470,195 @@ export default function IntegrantesPage() {
       </main>
 
       <Footer />
+
+      {/* Dialog para crear/editar tarjeta - Solo visible para usuarios autenticados */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {myCard ? "Editar mi tarjeta" : "Crear mi tarjeta"}
+            </DialogTitle>
+            <DialogDescription>
+              Completa la información para {myCard ? "actualizar" : "crear"} tu tarjeta de integrante.
+              Los campos marcados con * son obligatorios.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {formError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {formError}
+              </div>
+            )}
+            
+            <div className="grid gap-2">
+              <Label htmlFor="nombre">Nombre *</Label>
+              <Input
+                id="nombre"
+                value={formData.nombre}
+                onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
+                placeholder="Tu nombre completo"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="descripcion">Descripción *</Label>
+              <Textarea
+                id="descripcion"
+                value={formData.descripcion}
+                onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
+                placeholder="Una breve descripción sobre ti, tu experiencia y especialidad..."
+                rows={4}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="institucion">Institución</Label>
+              <Input
+                id="institucion"
+                value={formData.institucion}
+                onChange={(e) => setFormData(prev => ({ ...prev, institucion: e.target.value }))}
+                placeholder="Universidad, empresa u organización"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                value={formData.telefono}
+                onChange={(e) => setFormData(prev => ({ ...prev, telefono: e.target.value }))}
+                placeholder="+593 99 123 4567"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="linkedin">LinkedIn URL</Label>
+              <Input
+                id="linkedin"
+                value={formData.linkedin}
+                onChange={(e) => setFormData(prev => ({ ...prev, linkedin: e.target.value }))}
+                placeholder="https://linkedin.com/in/tu-perfil"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="orcid">ORCID URL</Label>
+              <Input
+                id="orcid"
+                value={formData.orcid}
+                onChange={(e) => setFormData(prev => ({ ...prev, orcid: e.target.value }))}
+                placeholder="https://orcid.org/0000-0000-0000-0000"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="foto_url">URL de la foto</Label>
+              <Input
+                id="foto_url"
+                value={formData.foto_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, foto_url: e.target.value }))}
+                placeholder="https://ejemplo.com/mi-foto.jpg"
+              />
+              {formData.foto_url && (
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border">
+                    <Image
+                      src={formData.foto_url || "/placeholder.svg"}
+                      alt="Vista previa"
+                      fill
+                      className="object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-foreground/60">Vista previa de la imagen</p>
+                </div>
+              )}
+              <p className="text-xs text-foreground/50">
+                Pega la URL de tu foto. Formatos recomendados: JPG, PNG. Tamaño ideal: 400x400px o superior.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {myCard ? "Guardar cambios" : "Crear tarjeta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmación para eliminar */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar tarjeta</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea eliminar su tarjeta de integrante? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
 
 // Componente para la tarjeta de integrante
-function IntegranteCard({ integrante }: { integrante: Integrante }) {
+function IntegranteCard({ 
+  integrante, 
+  isOwner,
+  canEdit,
+  onEdit,
+  onDelete
+}: { 
+  integrante: MemberCard
+  isOwner: boolean
+  canEdit: boolean
+  onEdit: () => void
+  onDelete: () => void
+}) {
   const [imageError, setImageError] = useState(false)
 
   // Obtener config del tipo
   const tipoConfig = filtrosConfig.find(f => f.id === integrante.tipo)
 
   return (
-    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-2">
+    <div className="group relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-2">
       {/* Badge de tipo */}
       <div className="absolute top-4 left-4 z-10">
         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
@@ -320,11 +672,20 @@ function IntegranteCard({ integrante }: { integrante: Integrante }) {
         </span>
       </div>
 
+      {/* Indicador de tarjeta propia - Solo visible si es dueño Y puede editar */}
+      {isOwner && canEdit && (
+        <div className="absolute top-4 right-4 z-10">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-accent text-white">
+            Mi tarjeta
+          </span>
+        </div>
+      )}
+
       {/* Foto */}
       <div className="relative h-64 bg-gradient-to-br from-gray-50 to-gray-100">
         {integrante.foto_url && !imageError ? (
           <Image
-            src={integrante.foto_url}
+            src={integrante.foto_url || "/placeholder.svg"}
             alt={integrante.nombre}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -341,7 +702,10 @@ function IntegranteCard({ integrante }: { integrante: Integrante }) {
                 return <Icon className="w-12 h-12 text-white" />
               })() : <User className="w-12 h-12 text-white" />}
             </div>
-            <p className="text-sm text-gray-500 text-center">Foto no disponible</p>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <ImageIcon className="w-4 h-4" />
+              <span>Sin foto</span>
+            </div>
           </div>
         )}
       </div>
@@ -394,7 +758,7 @@ function IntegranteCard({ integrante }: { integrante: Integrante }) {
           )}
 
           {/* Enlaces a redes profesionales */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex flex-wrap gap-2 pt-3">
             {integrante.linkedin && (
               <a
                 href={integrante.linkedin}
@@ -426,6 +790,21 @@ function IntegranteCard({ integrante }: { integrante: Integrante }) {
             )}
           </div>
         </div>
+
+        {/* Botones de acción - Solo visible para el dueño si puede editar */}
+        {isOwner && canEdit && (
+          <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              className="gap-1 text-xs"
+            >
+              <Pencil className="w-3 h-3" />
+              Editar
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
