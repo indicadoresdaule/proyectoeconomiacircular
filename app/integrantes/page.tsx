@@ -638,7 +638,6 @@ export default function IntegrantesPage() {
   )
 }
 
-// Componente para la tarjeta de integrante
 function IntegranteCard({ 
   integrante, 
   isOwner,
@@ -653,30 +652,17 @@ function IntegranteCard({
   onDelete: () => void
 }) {
   const [imageError, setImageError] = useState(false)
+  const [showFullDescription, setShowFullDescription] = useState(false)
 
   // Obtener config del tipo
   const tipoConfig = filtrosConfig.find(f => f.id === integrante.tipo)
 
+  // Calcular si la descripción es lo suficientemente larga como para necesitar truncamiento
+  const shouldTruncate = integrante.descripcion && integrante.descripcion.length > 150
+
   return (
     <div className="group relative bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent/30 hover:-translate-y-2">
-     
-      
-      
-      {/* Badge de tipo 
-      <div className="absolute top-4 left-4 z-10">
-        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-          tipoConfig?.color || 'bg-gray-100 text-gray-800'
-        }`}>
-          {tipoConfig?.icon && (() => {
-            const Icon = tipoConfig.icon
-            return <Icon className="w-3 h-3" />
-          })()}
-          {tipoConfig?.label}
-        </span>
-      </div>
-       */}
 
-      
       {/* Indicador de tarjeta propia - Solo visible si es dueño Y puede editar */}
       {isOwner && canEdit && (
         <div className="absolute top-4 right-4 z-10">
@@ -730,9 +716,31 @@ function IntegranteCard({
           )}
         </div>
 
-        <p className="text-foreground/70 text-sm mb-6 line-clamp-4">
-          {integrante.descripcion}
-        </p>
+        {/* Descripción con botón "Ver más" */}
+        <div className="mb-6">
+          <p className={`text-foreground/70 text-sm ${!showFullDescription && shouldTruncate ? 'line-clamp-4' : ''}`}>
+            {integrante.descripcion}
+          </p>
+          
+          {shouldTruncate && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="mt-2 text-accent hover:text-accent-dark text-sm font-medium inline-flex items-center gap-1 transition-colors"
+            >
+              {showFullDescription ? (
+                <>
+                  <EyeOff className="w-3 h-3" />
+                  Ver menos
+                </>
+              ) : (
+                <>
+                  <Eye className="w-3 h-3" />
+                  Ver más
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Información de contacto */}
         <div className="space-y-3 pt-4 border-t border-gray-100">
