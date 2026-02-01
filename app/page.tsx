@@ -956,23 +956,23 @@ export default function Home() {
                         ))}
                       </CarouselContent>
                       
-                      {/* Botones del carrusel con estilo natural - OCULTOS HASTA HOVER */}
+                      {/* Botones del carrusel con estilo natural - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
                       <CarouselPrevious 
-                        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
+                        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl opacity-0 group-hover:opacity-100"
                         data-carousel="previous"
                       >
                         <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                       </CarouselPrevious>
                       <CarouselNext 
-                        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
+                        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl opacity-0 group-hover:opacity-100"
                         data-carousel="next"
                       >
                         <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                       </CarouselNext>
                     </Carousel>
 
-                    {/* Indicadores de progreso con estilo de gotas - OCULTOS HASTA HOVER */}
-                    <div className="flex justify-center gap-3 mt-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {/* Indicadores de progreso con estilo de gotas - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
+                    <div className="flex justify-center gap-3 mt-6 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                       {heroImages.map((_, index) => (
                         <div
                           key={index}
@@ -990,8 +990,8 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* Botones responsive para móvil con estilo natural */}
-                    <div className="flex justify-between mt-3 sm:mt-4 lg:hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    {/* Botones responsive para móvil con estilo natural - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
+                    <div className="flex justify-between mt-3 sm:mt-4 lg:hidden transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                       <Button
                         size="icon"
                         variant="outline"
@@ -1003,7 +1003,7 @@ export default function Home() {
                       <Button
                         size="icon"
                         variant="outline"
-                        className="h-7 w-7 sm:h-8 sm:h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
+                        className="h-7 w-7 sm:h-8 sm:w-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
                         onClick={handleNext}
                       >
                         <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
