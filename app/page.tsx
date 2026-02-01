@@ -956,7 +956,7 @@ export default function Home() {
                         ))}
                       </CarouselContent>
                       
-                      {/* Botones del carrusel con estilo natural */}
+                      {/* Botones del carrusel con estilo natural - OCULTOS HASTA HOVER */}
                       <CarouselPrevious 
                         className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
                         data-carousel="previous"
@@ -971,8 +971,8 @@ export default function Home() {
                       </CarouselNext>
                     </Carousel>
 
-                    {/* Indicadores de progreso con estilo de gotas */}
-                    <div className="flex justify-center gap-3 mt-6">
+                    {/* Indicadores de progreso con estilo de gotas - OCULTOS HASTA HOVER */}
+                    <div className="flex justify-center gap-3 mt-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {heroImages.map((_, index) => (
                         <div
                           key={index}
@@ -991,7 +991,7 @@ export default function Home() {
                     </div>
 
                     {/* Botones responsive para móvil con estilo natural */}
-                    <div className="flex justify-between mt-3 sm:mt-4 lg:hidden">
+                    <div className="flex justify-between mt-3 sm:mt-4 lg:hidden opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <Button
                         size="icon"
                         variant="outline"
@@ -1348,10 +1348,7 @@ export default function Home() {
                                   {isYouTube ? 'YouTube' : isVimeo ? 'Vimeo' : 'Video'}
                                 </div>
                                 
-                                {/* Mostrar el número de orden */}
-                                <div className="absolute top-2 left-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded">
-                                  #{video.orden}
-                                </div>
+                                {/* MOSTRAR EL NÚMERO DE ORDEN - REMOVIDO */}
                                 
                                 {isAdmin && (
                                   <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 z-20 flex gap-0.5 sm:gap-1">
