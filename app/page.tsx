@@ -879,6 +879,7 @@ export default function Home() {
 
               {/* Carrusel de imágenes derecho - CON EFECTOS NATURALES */}
               <div className="relative">
+                {/* SOLO MUESTRA EL CARRUSEL SI HAY IMÁGENES */}
                 {!loadingImages && heroImages.length > 0 ? (
                   <div className="relative group" ref={carouselRef}>
                     {/* Marco natural con efecto de luz */}
@@ -1010,29 +1011,14 @@ export default function Home() {
                     </div>
                   </div>
                 ) : loadingImages ? (
-                  <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden bg-transparent">
-                    {/* EFECTO DE ENTRADA SIN FONDO - SÓLO ANIMACIÓN */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 animate-plant-grow">
-                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-400/50">
-                          <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
+                  // MUESTRA NADA DURANTE LA CARGA
+                  null
                 ) : (
-                  <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden bg-transparent border-2 border-dashed border-emerald-300/30 flex items-center justify-center">
-                    <div className="text-center p-8">
-                      <div className="w-16 h-16 mx-auto mb-4 text-emerald-400/50">
-                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
-                        </svg>
-                      </div>
-                      <p className="text-emerald-300/70 text-sm">No hay imágenes disponibles</p>
-                    </div>
-                  </div>
+                  // NO MUESTRA NADA CUANDO NO HAY IMÁGENES
+                  null
                 )}
 
+                {/* SOLO MUESTRA BOTONES ADMIN SI HAY IMÁGENES O SI ES ADMIN */}
                 {isAdmin && (
                   <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
                     <Button
