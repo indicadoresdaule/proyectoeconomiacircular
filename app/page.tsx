@@ -77,6 +77,14 @@ interface HomeVideo {
   tipo?: "youtube" | "vimeo" | "direct"
 }
 
+interface LeafAnimationProps {
+  index: number
+}
+
+interface WaterDropProps {
+  index: number
+}
+
 export default function Home() {
   const { user } = useUser()
   const [isAdmin, setIsAdmin] = useState(false)
@@ -84,6 +92,7 @@ export default function Home() {
   const [videos, setVideos] = useState<HomeVideo[]>([])
   const [loadingImages, setLoadingImages] = useState(true)
   const [loadingVideos, setLoadingVideos] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   // Estado para diálogos de imágenes
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
@@ -119,6 +128,48 @@ export default function Home() {
   // Carousel refs para control manual
   const carouselRef = useRef<HTMLDivElement>(null)
   const videosCarouselRef = useRef<HTMLDivElement>(null)
+
+  // Estados para animaciones
+  const [leafPositions, setLeafPositions] = useState<Array<{
+    left: string
+    top: string
+    animationDelay: string
+    animationDuration: string
+    transform: string
+  }>>([])
+
+  const [waterDropPositions, setWaterDropPositions] = useState<Array<{
+    left: string
+    animationDelay: string
+    animationDuration: string
+  }>>([])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Inicializar animaciones solo en el cliente
+  useEffect(() => {
+    if (mounted) {
+      // Generar posiciones para hojas
+      const leafPos = Array.from({ length: 12 }).map((_, i) => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 10}s`,
+        animationDuration: `${Math.random() * 20 + 20}s`,
+        transform: `rotate(${Math.random() * 360}deg)`,
+      }))
+      setLeafPositions(leafPos)
+
+      // Generar posiciones para gotas de agua
+      const waterPos = Array.from({ length: 8 }).map((_, i) => ({
+        left: `${10 + (i * 12)}%`,
+        animationDelay: `${Math.random() * 3}s`,
+        animationDuration: `${2 + Math.random() * 2}s`,
+      }))
+      setWaterDropPositions(waterPos)
+    }
+  }, [mounted])
 
   // Verificar si el usuario es admin
   useEffect(() => {
@@ -704,28 +755,22 @@ export default function Home() {
     }
   }
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
-      <Header />
-
-      <main className="flex-grow w-full">
-        {/* Hero Section con Carrusel de Imágenes - ANIMACIONES AMBIENTALES */}
-<section className="gradient-eco text-white py-8 sm:py-12 md:py-16 lg:py-24 relative overflow-hidden">
-  {/* Hojas flotantes animadas */}
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(12)].map((_, i) => (
+  // Componente para hojas animadas
+  const LeafAnimation = ({ index }: LeafAnimationProps) => {
+    if (!mounted || index >= leafPositions.length) return null
+    
+    const position = leafPositions[index]
+    return (
       <div
-        key={i}
         className="absolute opacity-20 animate-leaf-float"
         style={{
-          left: `${Math.random() * 100}%`,
-          top: `${Math.random() * 100}%`,
-          animationDelay: `${Math.random() * 10}s`,
-          animationDuration: `${Math.random() * 20 + 20}s`,
-          transform: `rotate(${Math.random() * 360}deg)`,
+          left: position.left,
+          top: position.top,
+          animationDelay: position.animationDelay,
+          animationDuration: position.animationDuration,
+          transform: position.transform,
         }}
       >
-        {/* Hoja SVG */}
         <svg 
           width="40" 
           height="40" 
@@ -736,561 +781,387 @@ export default function Home() {
           <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.85C7.14 19.15 7.71 18.44 8.29 17.74C9.73 16.06 11.09 14.38 12.27 12.91C14.77 14.825 17.11 16.325 19.34 17.56C19.65 17.74 19.94 17.91 20.23 18.07L22 16.92C21.43 14.1 20.34 10.73 17 8M10 5C10 5 11 4 12 2C13 4 14 5 14 5C14 5 13 6 12 8C11 6 10 5 10 5Z" />
         </svg>
       </div>
-    ))}
-  </div>
+    )
+  }
 
-  {/* Gotas de agua cayendo */}
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {[...Array(8)].map((_, i) => (
+  // Componente para gotas de agua
+  const WaterDropAnimation = ({ index }: WaterDropProps) => {
+    if (!mounted || index >= waterDropPositions.length) return null
+    
+    const position = waterDropPositions[index]
+    return (
       <div
-        key={i}
         className="absolute w-2 h-8 animate-water-drop"
         style={{
-          left: `${10 + (i * 12)}%`,
-          animationDelay: `${Math.random() * 3}s`,
-          animationDuration: `${2 + Math.random() * 2}s`,
+          left: position.left,
+          animationDelay: position.animationDelay,
+          animationDuration: position.animationDuration,
         }}
       >
         <div className="w-full h-full bg-gradient-to-b from-white/30 to-transparent rounded-full"></div>
       </div>
-    ))}
-  </div>
+    )
+  }
 
-  {/* Plantas decorativas en los bordes */}
-  <div className="absolute bottom-0 left-0 w-64 h-64 opacity-10 pointer-events-none">
-    <div className="absolute bottom-0 left-0 w-48 h-48 animate-plant-sway">
-      <svg 
-        width="100%" 
-        height="100%" 
-        viewBox="0 0 100 100"
-        fill="currentColor"
-        className="text-white/20"
-      >
-        <path d="M30,95 Q40,70 50,85 Q60,70 70,95" />
-        <path d="M40,95 Q45,80 50,90 Q55,80 60,95" />
-      </svg>
-    </div>
-  </div>
+  return (
+    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
+      <Header />
 
-  <div className="absolute bottom-0 right-0 w-64 h-64 opacity-10 pointer-events-none">
-    <div className="absolute bottom-0 right-0 w-48 h-48 animate-plant-sway-reverse">
-      <svg 
-        width="100%" 
-        height="100%" 
-        viewBox="0 0 100 100"
-        fill="currentColor"
-        className="text-white/20"
-      >
-        <path d="M70,95 Q60,70 50,85 Q40,70 30,95" />
-        <path d="M60,95 Q55,80 50,90 Q45,80 40,95" />
-      </svg>
-    </div>
-  </div>
+      <main className="flex-grow w-full">
+        {/* Hero Section con Carrusel de Imágenes - ANIMACIONES AMBIENTALES */}
+        <section className="gradient-eco text-white py-8 sm:py-12 md:py-16 lg:py-24 relative overflow-hidden">
+          {/* Hojas flotantes animadas */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <LeafAnimation key={i} index={i} />
+            ))}
+          </div>
 
-  <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-      {/* Contenido izquierdo - CON EFECTOS DE ENTRADA NATURAL */}
-      <div className="max-w-2xl lg:max-w-xl">
-        <span className="inline-block px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium mb-3 sm:mb-4 animate-glow">
-          Sistema de Seguimiento e Indicadores
-        </span>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 lg:mb-6 text-balance leading-tight animate-text-reveal">
-          Seguimiento e Indicadores para la Gestión de Residuos Domiciliarios
-        </h1>
-        <p className="text-sm sm:text-base md:text-lg text-white/90 mb-3 sm:mb-4 text-balance leading-relaxed animate-text-reveal-delay">
-          Plataforma integral de monitoreo y evaluación para la gestión
-          sostenible de residuos. Consulte métricas, indicadores de
-          desempeño y objetivos ambientales
-        </p>
-        
-        {/* Brillo sutil en el texto */}
-        <div className="relative inline-block mt-4">
-          <div className="absolute -inset-1 bg-gradient-to-r from-green-500/0 via-emerald-400/20 to-green-500/0 blur-lg animate-shimmer-slow"></div>
-        </div>
-      </div>
+          {/* Gotas de agua cayendo */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <WaterDropAnimation key={i} index={i} />
+            ))}
+          </div>
 
-      {/* Carrusel de imágenes derecho - CON EFECTOS NATURALES */}
-      <div className="relative">
-        {!loadingImages && heroImages.length > 0 ? (
-          <div className="relative group" ref={carouselRef}>
-            {/* Marco natural con efecto de luz */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
-            
-            {/* Plantitas decorativas en las esquinas del carrusel */}
-            <div className="absolute -top-3 -left-3 w-12 h-12 opacity-20">
-              <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
-                <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
+          {/* Plantas decorativas en los bordes */}
+          <div className="absolute bottom-0 left-0 w-64 h-64 opacity-10 pointer-events-none">
+            <div className="absolute bottom-0 left-0 w-48 h-48 animate-plant-sway">
+              <svg 
+                width="100%" 
+                height="100%" 
+                viewBox="0 0 100 100"
+                fill="currentColor"
+                className="text-white/20"
+              >
+                <path d="M30,95 Q40,70 50,85 Q60,70 70,95" />
+                <path d="M40,95 Q45,80 50,90 Q55,80 60,95" />
               </svg>
             </div>
-            <div className="absolute -bottom-3 -right-3 w-12 h-12 opacity-20">
-              <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-teal-300">
-                <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
+          </div>
+
+          <div className="absolute bottom-0 right-0 w-64 h-64 opacity-10 pointer-events-none">
+            <div className="absolute bottom-0 right-0 w-48 h-48 animate-plant-sway-reverse">
+              <svg 
+                width="100%" 
+                height="100%" 
+                viewBox="0 0 100 100"
+                fill="currentColor"
+                className="text-white/20"
+              >
+                <path d="M70,95 Q60,70 50,85 Q40,70 30,95" />
+                <path d="M60,95 Q55,80 50,90 Q45,80 40,95" />
               </svg>
             </div>
-            
-            <Carousel
-              opts={{
-                align: "start",
-                loop: true,
-              }}
-              plugins={[
-                Autoplay({
-                  delay: 5000,
-                  stopOnInteraction: true,
-                }),
-              ]}
-              className="w-full relative z-10"
-            >
-              <CarouselContent>
-                {heroImages.map((image) => (
-                  <CarouselItem key={image.id}>
-                    {/* CONTENEDOR CON EFECTO DE HOJA FLOTANTE */}
-                    <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden shadow-2xl group/image">
-                      {/* Efecto de luz natural en hover */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/0 via-teal-400/10 to-transparent opacity-0 group-hover/image:opacity-30 transition-opacity duration-500 z-10"></div>
+          </div>
+
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              {/* Contenido izquierdo - CON EFECTOS DE ENTRADA NATURAL */}
+              <div className="max-w-2xl lg:max-w-xl">
+                <span className="inline-block px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium mb-3 sm:mb-4 animate-glow">
+                  Sistema de Seguimiento e Indicadores
+                </span>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 lg:mb-6 text-balance leading-tight animate-text-reveal">
+                  Seguimiento e Indicadores para la Gestión de Residuos Domiciliarios
+                </h1>
+                <p className="text-sm sm:text-base md:text-lg text-white/90 mb-3 sm:mb-4 text-balance leading-relaxed animate-text-reveal-delay">
+                  Plataforma integral de monitoreo y evaluación para la gestión
+                  sostenible de residuos. Consulte métricas, indicadores de
+                  desempeño y objetivos ambientales
+                </p>
+                
+                {/* Brillo sutil en el texto */}
+                <div className="relative inline-block mt-4">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500/0 via-emerald-400/20 to-green-500/0 blur-lg animate-shimmer-slow"></div>
+                </div>
+              </div>
+
+              {/* Carrusel de imágenes derecho - CON EFECTOS NATURALES */}
+              <div className="relative">
+                {!loadingImages && heroImages.length > 0 ? (
+                  <div className="relative group" ref={carouselRef}>
+                    {/* Marco natural con efecto de luz */}
+                    <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
+                    
+                    {/* Plantitas decorativas en las esquinas del carrusel */}
+                    <div className="absolute -top-3 -left-3 w-12 h-12 opacity-20">
+                      <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
+                        <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
+                      </svg>
+                    </div>
+                    <div className="absolute -bottom-3 -right-3 w-12 h-12 opacity-20">
+                      <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-teal-300">
+                        <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
+                      </svg>
+                    </div>
+                    
+                    <Carousel
+                      opts={{
+                        align: "start",
+                        loop: true,
+                      }}
+                      plugins={[
+                        Autoplay({
+                          delay: 5000,
+                          stopOnInteraction: true,
+                        }),
+                      ]}
+                      className="w-full relative z-10"
+                    >
+                      <CarouselContent>
+                        {heroImages.map((image, index) => (
+                          <CarouselItem key={image.id}>
+                            {/* CONTENEDOR CON EFECTO DE HOJA FLOTANTE - ANIMACIÓN DE ENTRADA DESDE LA DERECHA */}
+                            <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden shadow-2xl group/image animate-slide-in-right">
+                              {/* Efecto de luz natural en hover */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/0 via-teal-400/10 to-transparent opacity-0 group-hover/image:opacity-30 transition-opacity duration-500 z-10"></div>
+                              
+                              {/* Pequeñas hojas decorativas */}
+                              <div className="absolute top-4 left-4 w-8 h-8 opacity-0 group-hover/image:opacity-20 transition-opacity duration-500">
+                                <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-white">
+                                  <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
+                                </svg>
+                              </div>
+                              
+                              <div className="relative w-full h-full">
+                                <Image
+                                  src={image.imagen_url || "/placeholder.svg"}
+                                  alt={image.alt_text || "Imagen del hero"}
+                                  fill
+                                  className="object-cover transition-all duration-700 group-hover/image:scale-105"
+                                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
+                                  priority={index === 0}
+                                />
+                              </div>
+                              
+                              {/* Overlay con efecto de crecimiento */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover/image:opacity-100 transition-all duration-500"></div>
+                              
+                              {image.alt_text && (
+                                <div className="absolute bottom-0 left-0 right-0 transform translate-y-full group-hover/image:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-emerald-900/90 via-teal-800/70 to-transparent p-3 sm:p-4 z-20">
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    <p className="text-white text-xs sm:text-sm font-medium">
+                                      {image.alt_text}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
                       
-                      {/* Pequeñas hojas decorativas */}
-                      <div className="absolute top-4 left-4 w-8 h-8 opacity-0 group-hover/image:opacity-20 transition-opacity duration-500">
-                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                          <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
+                      {/* Botones del carrusel con estilo natural */}
+                      <CarouselPrevious 
+                        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
+                        data-carousel="previous"
+                      >
+                        <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </CarouselPrevious>
+                      <CarouselNext 
+                        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
+                        data-carousel="next"
+                      >
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </CarouselNext>
+                    </Carousel>
+
+                    {/* Indicadores de progreso con estilo de gotas */}
+                    <div className="flex justify-center gap-3 mt-6">
+                      {heroImages.map((_, index) => (
+                        <div
+                          key={index}
+                          className="relative w-3 h-3"
+                        >
+                          <div className="absolute inset-0 bg-emerald-300/30 rounded-full animate-pulse-drop"></div>
+                          <div 
+                            className="absolute inset-0 bg-emerald-400 rounded-full transition-all duration-300 group-hover:scale-125"
+                            style={{
+                              animationDelay: `${index * 0.5}s`,
+                              animationDuration: '2s',
+                            }}
+                          ></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Botones responsive para móvil con estilo natural */}
+                    <div className="flex justify-between mt-3 sm:mt-4 lg:hidden">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7 sm:h-8 sm:w-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
+                        onClick={handlePrevious}
+                      >
+                        <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7 sm:h-8 sm:h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
+                        onClick={handleNext}
+                      >
+                        <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : loadingImages ? (
+                  <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden bg-transparent">
+                    {/* EFECTO DE ENTRADA SIN FONDO - SÓLO ANIMACIÓN */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 animate-plant-grow">
+                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-400/50">
+                          <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
                         </svg>
                       </div>
-                      
-                      <Image
-                        src={image.imagen_url || "/placeholder.svg"}
-                        alt={image.alt_text || "Imagen del hero"}
-                        fill
-                        className="object-cover transition-all duration-700 group-hover/image:scale-105"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw"
-                        priority
-                      />
-                      
-                      {/* Overlay con efecto de crecimiento */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover/image:opacity-100 transition-all duration-500"></div>
-                      
-                      {image.alt_text && (
-                        <div className="absolute bottom-0 left-0 right-0 transform translate-y-full group-hover/image:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-emerald-900/90 via-teal-800/70 to-transparent p-3 sm:p-4 z-20">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                            <p className="text-white text-xs sm:text-sm font-medium">
-                              {image.alt_text}
-                            </p>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              
-              {/* Botones del carrusel con estilo natural */}
-              <CarouselPrevious 
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
-                data-carousel="previous"
-              >
-                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-              </CarouselPrevious>
-              <CarouselNext 
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:shadow-xl"
-                data-carousel="next"
-              >
-                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-              </CarouselNext>
-            </Carousel>
+                  </div>
+                ) : (
+                  <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden bg-transparent border-2 border-dashed border-emerald-300/30 flex items-center justify-center">
+                    <div className="text-center p-8">
+                      <div className="w-16 h-16 mx-auto mb-4 text-emerald-400/50">
+                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                        </svg>
+                      </div>
+                      <p className="text-emerald-300/70 text-sm">No hay imágenes disponibles</p>
+                    </div>
+                  </div>
+                )}
 
-            {/* Indicadores de progreso con estilo de gotas */}
-            <div className="flex justify-center gap-3 mt-6">
-              {heroImages.map((_, index) => (
-                <div
-                  key={index}
-                  className="relative w-3 h-3"
-                >
-                  <div className="absolute inset-0 bg-emerald-300/30 rounded-full animate-pulse-drop"></div>
-                  <div 
-                    className="absolute inset-0 bg-emerald-400 rounded-full transition-all duration-300 group-hover:scale-125"
-                    style={{
-                      animationDelay: `${index * 0.5}s`,
-                      animationDuration: '2s',
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
-
-            {/* Botones responsive para móvil con estilo natural */}
-            <div className="flex justify-between mt-3 sm:mt-4 lg:hidden">
-              <Button
-                size="icon"
-                variant="outline"
-                className="h-7 w-7 sm:h-8 sm:w-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
-                onClick={handlePrevious}
-              >
-                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="outline"
-                className="h-7 w-7 sm:h-8 sm:h-8 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 hover:scale-110 transition-transform duration-200 shadow-lg"
-                onClick={handleNext}
-              >
-                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
-          </div>
-        ) : loadingImages ? (
-          <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden bg-gradient-to-r from-emerald-900/30 to-teal-900/30">
-            {/* Efecto de crecimiento de planta durante carga */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 animate-plant-grow">
-                <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-400/50">
-                  <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
-                </svg>
+                {isAdmin && (
+                  <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleCreateImage}
+                      className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 text-xs sm:text-sm group/btn"
+                    >
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 group-hover/btn:rotate-90 transition-transform duration-300" />
+                      Agregar Imagen
+                    </Button>
+                    {heroImages.length > 0 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600/20 text-white border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105 transition-all duration-300 text-xs sm:text-sm"
+                          >
+                            <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            Gestionar ({heroImages.length})
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent 
+                          className="bg-emerald-50 border-emerald-200 min-w-[280px] sm:min-w-[320px] max-w-[320px] sm:max-w-[360px] animate-grow-in"
+                          align="end"
+                        >
+                          <DropdownMenuLabel className="text-xs font-medium text-emerald-800 border-b border-emerald-200 pb-2 flex justify-between items-center">
+                            <span>Imágenes del Hero ({heroImages.length})</span>
+                            <span className="text-xs text-emerald-600">Orden actual</span>
+                          </DropdownMenuLabel>
+                          {heroImages.map((image, index) => (
+                            <DropdownMenuItem 
+                              key={image.id}
+                              className="flex flex-col items-start gap-1 py-2 px-3 cursor-pointer hover:bg-emerald-100 focus:bg-emerald-100 transition-colors duration-150"
+                              onSelect={(e) => e.preventDefault()}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-mono bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">
+                                    #{image.orden}
+                                  </span>
+                                  <span className="text-xs sm:text-sm font-medium text-emerald-900 truncate max-w-[120px] sm:max-w-[150px]">
+                                    {image.alt_text || `Imagen ${index + 1}`}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1">
+                                  {/* Botones con efecto de hoja */}
+                                  {index > 0 && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 hover:scale-110 transition-transform duration-200"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleChangeImageOrder(image.id, 'up')
+                                      }}
+                                      title="Subir posición"
+                                    >
+                                      <ArrowUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    </Button>
+                                  )}
+                                  {index < heroImages.length - 1 && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 hover:scale-110 transition-transform duration-200"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleChangeImageOrder(image.id, 'down')
+                                      }}
+                                      title="Bajar posición"
+                                    >
+                                      <ArrowDown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:scale-110 transition-transform duration-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleEditImage(image)
+                                    }}
+                                    title="Editar imagen"
+                                  >
+                                    <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-red-100 text-red-600 hover:text-red-700 hover:scale-110 transition-transform duration-200"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      confirmDelete('image', image.id)
+                                    }}
+                                    title="Eliminar imagen"
+                                  >
+                                    <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {/* VISTA PREVIA CON EFECTO DE CRECIMIENTO */}
+                              <div className="relative w-full h-14 sm:h-16 rounded overflow-hidden border border-emerald-200 group/preview">
+                                <Image
+                                  src={image.imagen_url}
+                                  alt="Preview"
+                                  fill
+                                  className="object-cover group-hover/preview:scale-110 transition-transform duration-500"
+                                  sizes="(max-width: 280px) 100vw"
+                                />
+                                <div className="absolute inset-0 bg-emerald-900/0 group-hover/preview:bg-emerald-900/30 transition-colors duration-500"></div>
+                                {/* Pequeña hoja decorativa */}
+                                <div className="absolute top-1 right-1 w-4 h-4 opacity-0 group-hover/preview:opacity-50 transition-opacity duration-300">
+                                  <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
+                                    <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
+                                  </svg>
+                                </div>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent animate-shimmer-slow"></div>
           </div>
-        ) : null}
-
-        {isAdmin && (
-          <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
-            <Button
-              size="sm"
-              onClick={handleCreateImage}
-              className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 text-xs sm:text-sm group/btn"
-            >
-              <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 group-hover/btn:rotate-90 transition-transform duration-300" />
-              Agregar Imagen
-            </Button>
-            {heroImages.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600/20 text-white border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105 transition-all duration-300 text-xs sm:text-sm"
-                  >
-                    <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    Gestionar ({heroImages.length})
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  className="bg-emerald-50 border-emerald-200 min-w-[280px] sm:min-w-[320px] max-w-[320px] sm:max-w-[360px] animate-grow-in"
-                  align="end"
-                >
-                  <DropdownMenuLabel className="text-xs font-medium text-emerald-800 border-b border-emerald-200 pb-2 flex justify-between items-center">
-                    <span>Imágenes del Hero ({heroImages.length})</span>
-                    <span className="text-xs text-emerald-600">Orden actual</span>
-                  </DropdownMenuLabel>
-                  {heroImages.map((image, index) => (
-                    <DropdownMenuItem 
-                      key={image.id}
-                      className="flex flex-col items-start gap-1 py-2 px-3 cursor-pointer hover:bg-emerald-100 focus:bg-emerald-100 transition-colors duration-150"
-                      onSelect={(e) => e.preventDefault()}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">
-                            #{image.orden}
-                          </span>
-                          <span className="text-xs sm:text-sm font-medium text-emerald-900 truncate max-w-[120px] sm:max-w-[150px]">
-                            {image.alt_text || `Imagen ${index + 1}`}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          {/* Botones con efecto de hoja */}
-                          {index > 0 && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 hover:scale-110 transition-transform duration-200"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleChangeImageOrder(image.id, 'up')
-                              }}
-                              title="Subir posición"
-                            >
-                              <ArrowUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            </Button>
-                          )}
-                          {index < heroImages.length - 1 && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:text-emerald-800 hover:scale-110 transition-transform duration-200"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleChangeImageOrder(image.id, 'down')
-                              }}
-                              title="Bajar posición"
-                            >
-                              <ArrowDown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                            </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-emerald-200 text-emerald-700 hover:scale-110 transition-transform duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleEditImage(image)
-                            }}
-                            title="Editar imagen"
-                          >
-                            <Pencil className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5 sm:h-6 sm:w-6 hover:bg-red-100 text-red-600 hover:text-red-700 hover:scale-110 transition-transform duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              confirmDelete('image', image.id)
-                            }}
-                            title="Eliminar imagen"
-                          >
-                            <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* VISTA PREVIA CON EFECTO DE CRECIMIENTO */}
-                      <div className="relative w-full h-14 sm:h-16 rounded overflow-hidden border border-emerald-200 group/preview">
-                        <Image
-                          src={image.imagen_url}
-                          alt="Preview"
-                          fill
-                          className="object-cover group-hover/preview:scale-110 transition-transform duration-500"
-                          sizes="(max-width: 280px) 100vw"
-                        />
-                        <div className="absolute inset-0 bg-emerald-900/0 group-hover/preview:bg-emerald-900/30 transition-colors duration-500"></div>
-                        {/* Pequeña hoja decorativa */}
-                        <div className="absolute top-1 right-1 w-4 h-4 opacity-0 group-hover/preview:opacity-50 transition-opacity duration-300">
-                          <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
-                            <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-
-  {/* Animaciones CSS inline */}
-  <style jsx global>{`
-    @keyframes leaf-float {
-      0%, 100% { 
-        transform: translateY(0) translateX(0) rotate(var(--start-rotate, 0deg));
-      }
-      25% { 
-        transform: translateY(-40px) translateX(20px) rotate(calc(var(--start-rotate, 0deg) + 90deg));
-      }
-      50% { 
-        transform: translateY(-20px) translateX(-20px) rotate(calc(var(--start-rotate, 0deg) + 180deg));
-      }
-      75% { 
-        transform: translateY(20px) translateX(30px) rotate(calc(var(--start-rotate, 0deg) + 270deg));
-      }
-    }
-
-    @keyframes water-drop {
-      0% {
-        transform: translateY(-100px);
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      90% {
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(300px);
-        opacity: 0;
-      }
-    }
-
-    @keyframes plant-sway {
-      0%, 100% { transform: translateX(0) rotate(-2deg); }
-      50% { transform: translateX(10px) rotate(2deg); }
-    }
-
-    @keyframes plant-sway-reverse {
-      0%, 100% { transform: translateX(0) rotate(2deg); }
-      50% { transform: translateX(-10px) rotate(-2deg); }
-    }
-
-    @keyframes glow {
-      0%, 100% { 
-        box-shadow: 0 0 5px rgba(72, 187, 120, 0.3);
-      }
-      50% { 
-        box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
-      }
-    }
-
-    @keyframes text-reveal {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes shimmer-slow {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    @keyframes pulse-drop {
-      0%, 100% { 
-        transform: scale(1);
-        opacity: 0.3;
-      }
-      50% { 
-        transform: scale(1.2);
-        opacity: 0.6;
-      }
-    }
-
-    @keyframes plant-grow {
-      0% { 
-        transform: scale(0) rotate(0deg);
-        opacity: 0;
-      }
-      50% { 
-        transform: scale(1.2) rotate(180deg);
-        opacity: 0.5;
-      }
-      100% { 
-        transform: scale(1) rotate(360deg);
-        opacity: 0.3;
-      }
-    }
-
-    @keyframes grow-in {
-      from {
-        opacity: 0;
-        transform: scale(0.9);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
-
-    .animate-leaf-float {
-      animation: leaf-float linear infinite;
-    }
-
-    .animate-water-drop {
-      animation: water-drop linear infinite;
-    }
-
-    .animate-plant-sway {
-      animation: plant-sway 8s ease-in-out infinite;
-    }
-
-    .animate-plant-sway-reverse {
-      animation: plant-sway-reverse 8s ease-in-out infinite;
-    }
-
-    .animate-glow {
-      animation: glow 3s ease-in-out infinite;
-    }
-
-    .animate-text-reveal {
-      animation: text-reveal 1s ease-out forwards;
-    }
-
-    .animate-text-reveal-delay {
-      animation: text-reveal 1s ease-out 0.3s forwards;
-      opacity: 0;
-    }
-
-    .animate-shimmer-slow {
-      animation: shimmer-slow 3s infinite;
-    }
-
-    .animate-pulse-drop {
-      animation: pulse-drop 2s ease-in-out infinite;
-    }
-
-    .animate-plant-grow {
-      animation: plant-grow 2s ease-in-out infinite;
-    }
-
-    .animate-grow-in {
-      animation: grow-in 0.2s ease-out forwards;
-    }
-
-    /* Mantener el color original del hero */
-    .gradient-eco {
-      background: linear-gradient(135deg, #0e8b4d 0%, #24b12f 25%, #17a72f 50%, #13642e 75%, #0b632d 100%);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Efecto de luz solar filtrada */
-    .gradient-eco::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: 
-        radial-gradient(
-          circle at 20% 80%,
-          rgba(34, 197, 94, 0.15) 0%,
-          transparent 50%
-        ),
-        radial-gradient(
-          circle at 80% 20%,
-          rgba(20, 184, 166, 0.15) 0%,
-          transparent 50%
-        );
-      pointer-events: none;
-      animation: sunlight-shift 20s ease-in-out infinite alternate;
-    }
-
-    @keyframes sunlight-shift {
-      0% {
-        background-position: 20% 80%, 80% 20%;
-      }
-      100% {
-        background-position: 30% 70%, 70% 30%;
-      }
-    }
-
-    /* Patrón de hojas muy sutiles de fondo */
-    .gradient-eco::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(11, 65, 30, 0.03) 0%, transparent 2%),
-        radial-gradient(circle at 90% 40%, rgba(14, 247, 99, 0.03) 0%, transparent 2%),
-        radial-gradient(circle at 50% 80%, rgba(34, 197, 94, 0.03) 0%, transparent 2%),
-        radial-gradient(circle at 30% 60%, rgba(34, 197, 94, 0.03) 0%, transparent 2%),
-        radial-gradient(circle at 70% 10%, rgba(34, 197, 94, 0.03) 0%, transparent 2%);
-      background-size: 200px 200px;
-      pointer-events: none;
-    }
-  `}</style>
-</section>
+        </section>
 
         {/* Sección de Tarjetas */}
         <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
@@ -2023,6 +1894,245 @@ export default function Home() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Estilos CSS globales */}
+      <style jsx global>{`
+        @keyframes leaf-float {
+          0%, 100% { 
+            transform: translateY(0) translateX(0) rotate(var(--start-rotate, 0deg));
+          }
+          25% { 
+            transform: translateY(-40px) translateX(20px) rotate(calc(var(--start-rotate, 0deg) + 90deg));
+          }
+          50% { 
+            transform: translateY(-20px) translateX(-20px) rotate(calc(var(--start-rotate, 0deg) + 180deg));
+          }
+          75% { 
+            transform: translateY(20px) translateX(30px) rotate(calc(var(--start-rotate, 0deg) + 270deg));
+          }
+        }
+
+        @keyframes water-drop {
+          0% {
+            transform: translateY(-100px);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(300px);
+            opacity: 0;
+          }
+        }
+
+        @keyframes plant-sway {
+          0%, 100% { transform: translateX(0) rotate(-2deg); }
+          50% { transform: translateX(10px) rotate(2deg); }
+        }
+
+        @keyframes plant-sway-reverse {
+          0%, 100% { transform: translateX(0) rotate(2deg); }
+          50% { transform: translateX(-10px) rotate(-2deg); }
+        }
+
+        @keyframes glow {
+          0%, 100% { 
+            box-shadow: 0 0 5px rgba(72, 187, 120, 0.3);
+          }
+          50% { 
+            box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
+          }
+        }
+
+        @keyframes text-reveal {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes shimmer-slow {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse-drop {
+          0%, 100% { 
+            transform: scale(1);
+            opacity: 0.3;
+          }
+          50% { 
+            transform: scale(1.2);
+            opacity: 0.6;
+          }
+        }
+
+        @keyframes plant-grow {
+          0% { 
+            transform: scale(0) rotate(0deg);
+            opacity: 0;
+          }
+          50% { 
+            transform: scale(1.2) rotate(180deg);
+            opacity: 0.5;
+          }
+          100% { 
+            transform: scale(1) rotate(360deg);
+            opacity: 0.3;
+          }
+        }
+
+        @keyframes grow-in {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes slide-in-right {
+          from {
+            opacity: 0;
+            transform: translateX(50px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+        }
+
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .animate-leaf-float {
+          animation: leaf-float linear infinite;
+        }
+
+        .animate-water-drop {
+          animation: water-drop linear infinite;
+        }
+
+        .animate-plant-sway {
+          animation: plant-sway 8s ease-in-out infinite;
+        }
+
+        .animate-plant-sway-reverse {
+          animation: plant-sway-reverse 8s ease-in-out infinite;
+        }
+
+        .animate-glow {
+          animation: glow 3s ease-in-out infinite;
+        }
+
+        .animate-text-reveal {
+          animation: text-reveal 1s ease-out forwards;
+        }
+
+        .animate-text-reveal-delay {
+          animation: text-reveal 1s ease-out 0.3s forwards;
+          opacity: 0;
+        }
+
+        .animate-shimmer-slow {
+          animation: shimmer-slow 3s infinite;
+        }
+
+        .animate-pulse-drop {
+          animation: pulse-drop 2s ease-in-out infinite;
+        }
+
+        .animate-plant-grow {
+          animation: plant-grow 2s ease-in-out infinite;
+        }
+
+        .animate-grow-in {
+          animation: grow-in 0.2s ease-out forwards;
+        }
+
+        .animate-slide-in-right {
+          animation: slide-in-right 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          opacity: 0;
+          animation-delay: 0.3s;
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out forwards;
+        }
+
+        /* Mantener el color original del hero */
+        .gradient-eco {
+          background: linear-gradient(135deg, #0e8b4d 0%, #24b12f 25%, #17a72f 50%, #13642e 75%, #0b632d 100%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Efecto de luz solar filtrada */
+        .gradient-eco::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: 
+            radial-gradient(
+              circle at 20% 80%,
+              rgba(34, 197, 94, 0.15) 0%,
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 80% 20%,
+              rgba(20, 184, 166, 0.15) 0%,
+              transparent 50%
+            );
+          pointer-events: none;
+          animation: sunlight-shift 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes sunlight-shift {
+          0% {
+            background-position: 20% 80%, 80% 20%;
+          }
+          100% {
+            background-position: 30% 70%, 70% 30%;
+          }
+        }
+
+        /* Patrón de hojas muy sutiles de fondo */
+        .gradient-eco::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-image: 
+            radial-gradient(circle at 10% 20%, rgba(11, 65, 30, 0.03) 0%, transparent 2%),
+            radial-gradient(circle at 90% 40%, rgba(14, 247, 99, 0.03) 0%, transparent 2%),
+            radial-gradient(circle at 50% 80%, rgba(34, 197, 94, 0.03) 0%, transparent 2%),
+            radial-gradient(circle at 30% 60%, rgba(34, 197, 94, 0.03) 0%, transparent 2%),
+            radial-gradient(circle at 70% 10%, rgba(34, 197, 94, 0.03) 0%, transparent 2%);
+          background-size: 200px 200px;
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   )
 }
