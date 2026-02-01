@@ -1393,18 +1393,18 @@ export default function Home() {
                                 )}
                               </div>
                               
-                              {/* Contenido del video */}
-                              <div className="flex-grow">
-                                <h3 className="font-bold text-base sm:text-lg text-foreground mb-1.5 sm:mb-2 line-clamp-1">
+                              {/* Contenido del video - CORREGIDO: texto completo visible */}
+                              <div className="flex-grow min-h-[100px]">
+                                <h3 className="font-bold text-base sm:text-lg text-foreground mb-1.5 sm:mb-2">
                                   {video.titulo}
                                 </h3>
-                                <p className="text-xs sm:text-sm text-foreground/70 mb-3 sm:mb-4 line-clamp-2 flex-grow">
+                                <p className="text-xs sm:text-sm text-foreground/70 mb-3 sm:mb-4">
                                   {video.descripcion}
                                 </p>
                               </div>
                               
                               {/* Botones de acción */}
-                              <div className="flex gap-1.5 sm:gap-2 mt-auto">
+                              <div className="flex gap-1.5 sm:gap-2 mt-4">
                                 <Button
                                   size="sm"
                                   className="flex-1 bg-primary hover:bg-primary/90 h-8 sm:h-9 text-xs sm:text-sm"
@@ -1541,8 +1541,8 @@ export default function Home() {
               {/* Encabezado personalizado */}
               <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/80 to-transparent">
                 <div className="max-w-[75%]">
-                  <h3 className="text-white font-bold text-base sm:text-lg truncate">{selectedVideo.titulo}</h3>
-                  <p className="text-white/70 text-xs sm:text-sm truncate">{selectedVideo.descripcion}</p>
+                  <h3 className="text-white font-bold text-base sm:text-lg">{selectedVideo.titulo}</h3>
+                  <p className="text-white/70 text-xs sm:text-sm">{selectedVideo.descripcion}</p>
                 </div>
                 <Button
                   size="icon"
@@ -1636,7 +1636,7 @@ export default function Home() {
               <div className="p-3 sm:p-4 bg-black">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
                   <div className="flex-1">
-                    <p className="text-white/70 text-xs sm:text-sm line-clamp-2">{selectedVideo.descripcion}</p>
+                    <p className="text-white/70 text-xs sm:text-sm">{selectedVideo.descripcion}</p>
                   </div>
                   <Button
                     variant="outline"
