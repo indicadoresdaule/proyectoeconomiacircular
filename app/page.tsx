@@ -34,21 +34,27 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  ExternalLink, 
-  Play, 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Play,
+  ChevronLeft,
+  ChevronRight,
+  X,
   Maximize2,
   Volume2,
   VolumeX,
   MoreVertical,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Clock,
+  Calendar,
+  Eye,
+  ThumbsUp,
+  Youtube,
+  Film
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import Autoplay from "embla-carousel-autoplay"
@@ -60,6 +66,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface HeroImage {
   id: string
@@ -75,6 +83,10 @@ interface HomeVideo {
   video_url: string
   orden: number
   tipo?: "youtube" | "vimeo" | "direct"
+  created_at?: string
+  duracion?: string
+  vistas?: number
+  likes?: number
 }
 
 interface LeafAnimationProps {
@@ -123,7 +135,7 @@ export default function Home() {
 
   // Estado para diálogo de confirmación de eliminación
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<{type: 'image' | 'video', id: string} | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'image' | 'video', id: string } | null>(null)
 
   // Carousel refs para control manual
   const carouselRef = useRef<HTMLDivElement>(null)
@@ -143,6 +155,9 @@ export default function Home() {
     animationDelay: string
     animationDuration: string
   }>>([])
+
+  // Estado para hover de tarjetas
+  const [hoveredVideo, setHoveredVideo] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -230,10 +245,14 @@ export default function Home() {
         const data = await response.json()
         // Ordenar videos por el campo 'orden'
         const sortedVideos = data.sort((a: HomeVideo, b: HomeVideo) => a.orden - b.orden)
-        // Detectar tipo de video
-        const videosWithType = sortedVideos.map((video: HomeVideo) => ({
+        // Detectar tipo de video y agregar datos simulados
+        const videosWithType = sortedVideos.map((video: HomeVideo, index: number) => ({
           ...video,
-          tipo: detectVideoType(video.video_url)
+          tipo: detectVideoType(video.video_url),
+          duracion: `${Math.floor(Math.random() * 10) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+          vistas: Math.floor(Math.random() * 10000) + 1000,
+          likes: Math.floor(Math.random() * 500) + 50,
+          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         }))
         setVideos(videosWithType)
       } catch (error) {
@@ -275,18 +294,44 @@ export default function Home() {
     return match ? match[1] : null
   }
 
+  // Formatear números
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
+    }
+    return num.toString()
+  }
+
+  // Formatear fecha
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now.getTime() - date.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Hoy'
+    if (diffDays === 1) return 'Ayer'
+    if (diffDays < 7) return `Hace ${diffDays} días`
+    if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semanas`
+    if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} meses`
+    return `Hace ${Math.floor(diffDays / 365)} años`
+  }
+
   // Funciones para imágenes
   const handleCreateImage = () => {
     // Calcular el siguiente orden disponible
-    const nextOrden = heroImages.length > 0 
-      ? Math.max(...heroImages.map(img => img.orden)) + 1 
+    const nextOrden = heroImages.length > 0
+      ? Math.max(...heroImages.map(img => img.orden)) + 1
       : 0
-    
+
     setEditingImage(null)
-    setImageFormData({ 
-      imagen_url: "", 
-      alt_text: "", 
-      orden: nextOrden 
+    setImageFormData({
+      imagen_url: "",
+      alt_text: "",
+      orden: nextOrden
     })
     setImageDialogOpen(true)
   }
@@ -327,10 +372,10 @@ export default function Home() {
 
     // Ordenar la lista por el nuevo orden
     newImages.sort((a, b) => a.orden - b.orden)
-    
+
     try {
       // Actualizar ambas imágenes en la base de datos
-      const updates = newImages.map(img => 
+      const updates = newImages.map(img =>
         fetch(`/api/hero-images/${img.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -361,7 +406,7 @@ export default function Home() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Error al eliminar imagen")
       }
@@ -404,7 +449,7 @@ export default function Home() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Error al guardar imagen")
       }
@@ -421,7 +466,7 @@ export default function Home() {
       // Ordenar las imágenes después de guardar
       updatedImages.sort((a, b) => a.orden - b.orden)
       setHeroImages(updatedImages)
-      
+
       setImageDialogOpen(false)
       toast({
         title: editingImage ? "Imagen actualizada" : "Imagen creada",
@@ -440,16 +485,16 @@ export default function Home() {
   // Funciones para videos
   const handleCreateVideo = () => {
     // Calcular el siguiente orden disponible
-    const nextOrden = videos.length > 0 
-      ? Math.max(...videos.map(v => v.orden)) + 1 
+    const nextOrden = videos.length > 0
+      ? Math.max(...videos.map(v => v.orden)) + 1
       : 0
-    
+
     setEditingVideo(null)
-    setVideoFormData({ 
-      titulo: "", 
-      descripcion: "", 
-      video_url: "", 
-      orden: nextOrden 
+    setVideoFormData({
+      titulo: "",
+      descripcion: "",
+      video_url: "",
+      orden: nextOrden
     })
     setVideoDialogOpen(true)
   }
@@ -491,10 +536,10 @@ export default function Home() {
 
     // Ordenar la lista por el nuevo orden
     newVideos.sort((a, b) => a.orden - b.orden)
-    
+
     try {
       // Actualizar ambos videos en la base de datos
-      const updates = newVideos.map(video => 
+      const updates = newVideos.map(video =>
         fetch(`/api/home-videos/${video.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -529,7 +574,7 @@ export default function Home() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Error al eliminar video")
       }
@@ -572,19 +617,19 @@ export default function Home() {
       })
 
       const data = await response.json()
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Error al guardar video")
       }
 
       let updatedVideos: HomeVideo[]
       if (editingVideo) {
-        updatedVideos = videos.map((v) => 
+        updatedVideos = videos.map((v) =>
           v.id === data.id ? { ...data, orden: videoFormData.orden } : v
         )
       } else {
-        updatedVideos = [...videos, { 
-          ...data, 
+        updatedVideos = [...videos, {
+          ...data,
           orden: videoFormData.orden,
           tipo: detectVideoType(data.video_url)
         }]
@@ -593,7 +638,7 @@ export default function Home() {
       // Ordenar los videos después de guardar
       updatedVideos.sort((a, b) => a.orden - b.orden)
       setVideos(updatedVideos)
-      
+
       setVideoDialogOpen(false)
       toast({
         title: editingVideo ? "Video actualizado" : "Video creado",
@@ -690,14 +735,21 @@ export default function Home() {
       const videoId = getYouTubeId(video.video_url)
       if (videoId) {
         return (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full overflow-hidden">
             <img
-              src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
               alt={video.titulo}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
               loading="lazy"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            {/* Efecto de gradiente dinámico */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
+            {/* Efecto de brillo en hover */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
           </div>
         )
       }
@@ -705,14 +757,15 @@ export default function Home() {
       const videoId = getVimeoId(video.video_url)
       if (videoId) {
         return (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full overflow-hidden">
             <img
               src={`https://vumbnail.com/${videoId}.jpg`}
               alt={video.titulo}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
           </div>
         )
       }
@@ -720,8 +773,11 @@ export default function Home() {
 
     // Thumbnail por defecto
     return (
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-        <Play className="size-16 text-white drop-shadow-lg" />
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center overflow-hidden">
+        <div className="relative z-10">
+          <Play className="size-20 text-white/80 drop-shadow-2xl" />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-accent/20 animate-pulse-slow" />
       </div>
     )
   }
@@ -758,7 +814,7 @@ export default function Home() {
   // Componente para hojas animadas
   const LeafAnimation = ({ index }: LeafAnimationProps) => {
     if (!mounted || index >= leafPositions.length) return null
-    
+
     const position = leafPositions[index]
     return (
       <div
@@ -771,10 +827,10 @@ export default function Home() {
           transform: position.transform,
         }}
       >
-        <svg 
-          width="40" 
-          height="40" 
-          viewBox="0 0 24 24" 
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
           fill="currentColor"
           className="text-white/30"
         >
@@ -787,7 +843,7 @@ export default function Home() {
   // Componente para gotas de agua
   const WaterDropAnimation = ({ index }: WaterDropProps) => {
     if (!mounted || index >= waterDropPositions.length) return null
-    
+
     const position = waterDropPositions[index]
     return (
       <div
@@ -803,11 +859,27 @@ export default function Home() {
     )
   }
 
+  // Skeleton para tarjetas de video
+  const VideoCardSkeleton = () => (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-200 animate-pulse">
+      <div className="relative aspect-video bg-gray-300" />
+      <div className="p-5">
+        <div className="h-6 bg-gray-300 rounded mb-3" />
+        <div className="h-4 bg-gray-200 rounded mb-2" />
+        <div className="h-4 bg-gray-200 rounded mb-4" />
+        <div className="flex gap-2">
+          <div className="h-9 flex-1 bg-gray-300 rounded" />
+          <div className="h-9 w-9 bg-gray-300 rounded" />
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       <Header />
 
-      <main className="flex-grow w-full">
+      <main className="flex-grow w-full overflow-x-hidden">
         {/* Hero Section con Carrusel de Imágenes - ANIMACIONES AMBIENTALES */}
         <section className="gradient-eco text-white py-8 sm:py-12 md:py-16 lg:py-24 relative overflow-hidden">
           {/* Hojas flotantes animadas */}
@@ -824,40 +896,9 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Plantas decorativas en los bordes */}
-          <div className="absolute bottom-0 left-0 w-64 h-64 opacity-10 pointer-events-none">
-            <div className="absolute bottom-0 left-0 w-48 h-48 animate-plant-sway">
-              <svg 
-                width="100%" 
-                height="100%" 
-                viewBox="0 0 100 100"
-                fill="currentColor"
-                className="text-white/20"
-              >
-                <path d="M30,95 Q40,70 50,85 Q60,70 70,95" />
-                <path d="M40,95 Q45,80 50,90 Q55,80 60,95" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="absolute bottom-0 right-0 w-64 h-64 opacity-10 pointer-events-none">
-            <div className="absolute bottom-0 right-0 w-48 h-48 animate-plant-sway-reverse">
-              <svg 
-                width="100%" 
-                height="100%" 
-                viewBox="0 0 100 100"
-                fill="currentColor"
-                className="text-white/20"
-              >
-                <path d="M70,95 Q60,70 50,85 Q40,70 30,95" />
-                <path d="M60,95 Q55,80 50,90 Q45,80 40,95" />
-              </svg>
-            </div>
-          </div>
-
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              {/* Contenido izquierdo - CON EFECTOS DE ENTRADA NATURAL */}
+              {/* Contenido izquierdo */}
               <div className="max-w-2xl lg:max-w-xl">
                 <span className="inline-block px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium mb-3 sm:mb-4 animate-glow">
                   Sistema de Seguimiento e Indicadores
@@ -870,33 +911,14 @@ export default function Home() {
                   sostenible de residuos. Consulte métricas, indicadores de
                   desempeño y objetivos ambientales
                 </p>
-                
-                {/* Brillo sutil en el texto */}
-                <div className="relative inline-block mt-4">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-500/0 via-emerald-400/20 to-green-500/0 blur-lg animate-shimmer-slow"></div>
-                </div>
               </div>
 
-              {/* Carrusel de imágenes derecho - CON EFECTOS NATURALES */}
+              {/* Carrusel de imágenes derecho */}
               <div className="relative">
-                {/* SOLO MUESTRA EL CARRUSEL SI HAY IMÁGENES */}
                 {!loadingImages && heroImages.length > 0 ? (
                   <div className="relative group" ref={carouselRef}>
-                    {/* Marco natural con efecto de luz */}
                     <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
-                    
-                    {/* Plantitas decorativas en las esquinas del carrusel */}
-                    <div className="absolute -top-3 -left-3 w-12 h-12 opacity-20">
-                      <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
-                        <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
-                      </svg>
-                    </div>
-                    <div className="absolute -bottom-3 -right-3 w-12 h-12 opacity-20">
-                      <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-teal-300">
-                        <path d="M12,2C8.13,2,5,5.13,5,9c0,5.25,7,13,7,13s7-7.75,7-13C19,5.13,15.87,2,12,2z M12,11.5c-1.38,0-2.5-1.12-2.5-2.5 s1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5S13.38,11.5,12,11.5z"/>
-                      </svg>
-                    </div>
-                    
+
                     <Carousel
                       opts={{
                         align: "start",
@@ -913,18 +935,7 @@ export default function Home() {
                       <CarouselContent>
                         {heroImages.map((image, index) => (
                           <CarouselItem key={image.id}>
-                            {/* CONTENEDOR CON EFECTO DE HOJA FLOTANTE - ANIMACIÓN DE ENTRADA DESDE LA DERECHA */}
                             <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] xl:aspect-[16/8] rounded-xl overflow-hidden shadow-2xl group/image animate-slide-in-right">
-                              {/* Efecto de luz natural en hover */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/0 via-teal-400/10 to-transparent opacity-0 group-hover/image:opacity-30 transition-opacity duration-500 z-10"></div>
-                              
-                              {/* Pequeñas hojas decorativas */}
-                              <div className="absolute top-4 left-4 w-8 h-8 opacity-0 group-hover/image:opacity-20 transition-opacity duration-500">
-                                <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-white">
-                                  <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
-                                </svg>
-                              </div>
-                              
                               <div className="relative w-full h-full">
                                 <Image
                                   src={image.imagen_url || "/placeholder.svg"}
@@ -935,10 +946,7 @@ export default function Home() {
                                   priority={index === 0}
                                 />
                               </div>
-                              
-                              {/* Overlay con efecto de crecimiento */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover/image:opacity-100 transition-all duration-500"></div>
-                              
+
                               {image.alt_text && (
                                 <div className="absolute bottom-0 left-0 right-0 transform translate-y-full group-hover/image:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-emerald-900/90 via-teal-800/70 to-transparent p-3 sm:p-4 z-20">
                                   <div className="flex items-center gap-2">
@@ -955,15 +963,14 @@ export default function Home() {
                           </CarouselItem>
                         ))}
                       </CarouselContent>
-                      
-                      {/* Botones del carrusel con estilo natural - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
-                      <CarouselPrevious 
+
+                      <CarouselPrevious
                         className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl opacity-0 group-hover:opacity-100"
                         data-carousel="previous"
                       >
                         <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                       </CarouselPrevious>
-                      <CarouselNext 
+                      <CarouselNext
                         className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-emerald-600/90 hover:bg-emerald-500 text-white border-emerald-700 shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl opacity-0 group-hover:opacity-100"
                         data-carousel="next"
                       >
@@ -971,7 +978,6 @@ export default function Home() {
                       </CarouselNext>
                     </Carousel>
 
-                    {/* Indicadores de progreso con estilo de gotas - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
                     <div className="flex justify-center gap-3 mt-6 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                       {heroImages.map((_, index) => (
                         <div
@@ -979,7 +985,7 @@ export default function Home() {
                           className="relative w-3 h-3"
                         >
                           <div className="absolute inset-0 bg-emerald-300/30 rounded-full animate-pulse-drop"></div>
-                          <div 
+                          <div
                             className="absolute inset-0 bg-emerald-400 rounded-full transition-all duration-300 group-hover:scale-125"
                             style={{
                               animationDelay: `${index * 0.5}s`,
@@ -990,7 +996,6 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {/* Botones responsive para móvil con estilo natural - OCULTOS POR DEFECTO, VISIBLES EN HOVER */}
                     <div className="flex justify-between mt-3 sm:mt-4 lg:hidden transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                       <Button
                         size="icon"
@@ -1011,14 +1016,11 @@ export default function Home() {
                     </div>
                   </div>
                 ) : loadingImages ? (
-                  // MUESTRA NADA DURANTE LA CARGA
                   null
                 ) : (
-                  // NO MUESTRA NADA CUANDO NO HAY IMÁGENES
                   null
                 )}
 
-                {/* SOLO MUESTRA BOTONES ADMIN SI HAY IMÁGENES O SI ES ADMIN */}
                 {isAdmin && (
                   <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
                     <Button
@@ -1041,7 +1043,7 @@ export default function Home() {
                             Gestionar ({heroImages.length})
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent 
+                        <DropdownMenuContent
                           className="bg-emerald-50 border-emerald-200 min-w-[280px] sm:min-w-[320px] max-w-[320px] sm:max-w-[360px] animate-grow-in"
                           align="end"
                         >
@@ -1050,7 +1052,7 @@ export default function Home() {
                             <span className="text-xs text-emerald-600">Orden actual</span>
                           </DropdownMenuLabel>
                           {heroImages.map((image, index) => (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               key={image.id}
                               className="flex flex-col items-start gap-1 py-2 px-3 cursor-pointer hover:bg-emerald-100 focus:bg-emerald-100 transition-colors duration-150"
                               onSelect={(e) => e.preventDefault()}
@@ -1065,7 +1067,6 @@ export default function Home() {
                                   </span>
                                 </div>
                                 <div className="flex gap-1">
-                                  {/* Botones con efecto de hoja */}
                                   {index > 0 && (
                                     <Button
                                       size="icon"
@@ -1120,7 +1121,6 @@ export default function Home() {
                                   </Button>
                                 </div>
                               </div>
-                              {/* VISTA PREVIA CON EFECTO DE CRECIMIENTO */}
                               <div className="relative w-full h-14 sm:h-16 rounded overflow-hidden border border-emerald-200 group/preview">
                                 <Image
                                   src={image.imagen_url}
@@ -1129,13 +1129,6 @@ export default function Home() {
                                   className="object-cover group-hover/preview:scale-110 transition-transform duration-500"
                                   sizes="(max-width: 280px) 100vw"
                                 />
-                                <div className="absolute inset-0 bg-emerald-900/0 group-hover/preview:bg-emerald-900/30 transition-colors duration-500"></div>
-                                {/* Pequeña hoja decorativa */}
-                                <div className="absolute top-1 right-1 w-4 h-4 opacity-0 group-hover/preview:opacity-50 transition-opacity duration-300">
-                                  <svg width="100%" height="100%" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-300">
-                                    <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.85C7.14,19.15 7.71,18.44 8.29,17.74C9.73,16.06 11.09,14.38 12.27,12.91C14.77,14.825 17.11,16.325 19.34,17.56C19.65,17.74 19.94,17.91 20.23,18.07L22,16.92C21.43,14.1 20.34,10.73 17,8M10,5C10,5 11,4 12,2C13,4 14,5 14,5C14,5 13,6 12,8C11,6 10,5 10,5Z"/>
-                                  </svg>
-                                </div>
                               </div>
                             </DropdownMenuItem>
                           ))}
@@ -1150,7 +1143,7 @@ export default function Home() {
         </section>
 
         {/* Sección de Tarjetas */}
-        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
+        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background overflow-x-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8 sm:mb-12 lg:mb-16">
               <span className="inline-block px-3 py-1 rounded-full bg-accent-lighter text-accent font-medium text-xs mb-3">
@@ -1209,84 +1202,102 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Sección de Videos - CON PREVIEW Y ORDEN */}
+        {/* SECCIÓN DE VIDEOS - MODIFICADA */}
         {(!loadingVideos && videos.length > 0) || isAdmin ? (
-          <section className="py-8 sm:py-12 md:py-16 lg:py-20 bg-secondary-bg border-y border-border">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-3 sm:gap-4">
-                <div>
-                  <span className="inline-block px-3 py-1 rounded-full bg-primary-lighter text-primary font-medium text-xs mb-2 sm:mb-3">
-                    CONTENIDO MULTIMEDIA
-                  </span>
-                  <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground">
-                    Videos Destacados
-                  </h2>
-                  <p className="text-foreground/60 mt-1 sm:mt-2 max-w-2xl text-sm sm:text-base">
-                    Mira nuestros videos sobre gestión de residuos y sostenibilidad
-                  </p>
-                </div>
-                {isAdmin && (
-                  <div className="flex gap-2">
+          <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white overflow-x-hidden relative">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl"></div>
+            </div>
+
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+              {/* Encabezado de la sección */}
+              <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-16 lg:mb-20">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-primary font-semibold text-sm mb-4 sm:mb-6">
+                  <Film className="h-4 w-4" />
+                  CONTENIDO MULTIMEDIA
+                </span>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
+                  Videos <span className="text-primary">Destacados</span>
+                </h2>
+                <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                  Explora nuestra colección de videos sobre gestión de residuos,
+                  sostenibilidad y mejores prácticas ambientales.
+                </p>
+              </div>
+
+              {/* Controles de administrador */}
+              {isAdmin && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-12 p-4 sm:p-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Youtube className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Gestión de Videos</h3>
+                      <p className="text-sm text-gray-600">{videos.length} videos en la biblioteca</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
                     {videos.length > 0 && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 sm:h-10 px-2 sm:px-3"
-                          >
-                            <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            Ordenar
-                          </Button>
+  variant="outline"
+  className="h-11 px-4 border-green-200 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-500"
+>
+  <MoreVertical className="h-4 w-4 mr-2" />
+  Ordenar Videos
+</Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent 
-                          className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[220px] sm:min-w-[240px]"
+                        <DropdownMenuContent
+                          className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[240px] shadow-xl"
                           align="end"
                         >
-                          <DropdownMenuLabel className="text-xs font-medium text-gray-500 border-b pb-2">
+                          <DropdownMenuLabel className="text-sm font-medium text-gray-500 border-b pb-2">
                             Orden de videos ({videos.length})
                           </DropdownMenuLabel>
                           {videos.map((video, index) => (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               key={video.id}
-                              className="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+                              className="flex items-center justify-between gap-2 py-3 px-4 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
                               onSelect={(e) => e.preventDefault()}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
                                   #{video.orden}
                                 </span>
-                                <span className="text-xs sm:text-sm truncate max-w-[120px]">
+                                <span className="text-sm truncate max-w-[140px]">
                                   {video.titulo}
                                 </span>
                               </div>
-                              <div className="flex gap-0.5">
+                              <div className="flex gap-1">
                                 {index > 0 && (
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-5 w-5 hover:bg-blue-100 text-blue-600"
+                                    className="h-6 w-6 hover:bg-blue-100 text-blue-600"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChangeVideoOrder(video.id, 'up')
                                     }}
                                     title="Subir posición"
                                   >
-                                    <ArrowUp className="h-2.5 w-2.5" />
+                                    <ArrowUp className="h-3 w-3" />
                                   </Button>
                                 )}
                                 {index < videos.length - 1 && (
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-5 w-5 hover:bg-blue-100 text-blue-600"
+                                    className="h-6 w-6 hover:bg-blue-100 text-blue-600"
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleChangeVideoOrder(video.id, 'down')
                                     }}
                                     title="Bajar posición"
                                   >
-                                    <ArrowDown className="h-2.5 w-2.5" />
+                                    <ArrowDown className="h-3 w-3" />
                                   </Button>
                                 )}
                               </div>
@@ -1295,190 +1306,186 @@ export default function Home() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
-                    <Button onClick={handleCreateVideo} className="shrink-0 h-9 sm:h-10 px-3 sm:px-4">
-                      <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <Button
+                      onClick={handleCreateVideo}
+                      className="h-11 px-6 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
                       Agregar Video
                     </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {videos.length > 0 ? (
-                <div className="relative group" ref={videosCarouselRef}>
-                  <Carousel
-                    opts={{
-                      align: "start",
-                      loop: false,
-                      slidesToScroll: 1,
-                    }}
-                    className="w-full"
-                  >
-                    <CarouselContent className="-ml-3 sm:-ml-4">
-                      {/* Los videos ya están ordenados por el estado videos */}
-                      {videos.map((video) => {
-                        const videoType = detectVideoType(video.video_url)
-                        const isYouTube = videoType === 'youtube'
-                        const isVimeo = videoType === 'vimeo'
-                        const isDirect = videoType === 'direct'
+              {/* Grid de videos */}
+              {loadingVideos ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <VideoCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : videos.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                    {videos.map((video) => {
+                      const videoType = detectVideoType(video.video_url)
+                      const isYouTube = videoType === 'youtube'
+                      const isVimeo = videoType === 'vimeo'
 
-                        return (
-                          <CarouselItem
-                            key={video.id}
-                            className="pl-3 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
-                          >
-                            <div className="card-elevated p-3 sm:p-4 h-full flex flex-col hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group/item">
-                              {/* Thumbnail del video con overlay interactivo */}
-                              <div 
-                                className="relative aspect-video rounded-lg overflow-hidden bg-gray-900 mb-3 sm:mb-4 cursor-pointer"
-                                onClick={() => openVideoPreview(video)}
-                              >
-                                {renderVideoThumbnail(video)}
-                                
-                                {/* Overlay con botón de play */}
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/item:bg-black/30 transition-all duration-300">
-                                  <div className="transform scale-100 group-hover/item:scale-110 transition-transform duration-300">
-                                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/90 flex items-center justify-center shadow-2xl">
-                                      <Play className="h-6 w-6 sm:h-8 sm:w-8 text-primary ml-0.5 sm:ml-1" />
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* Indicador de duración (simulado) */}
-                                <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 bg-black/70 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+                      return (
+                        <div
+                          key={video.id}
+                          className="group/card relative flex flex-col"
+                          onMouseEnter={() => setHoveredVideo(video.id)}
+                          onMouseLeave={() => setHoveredVideo(null)}
+                        >
+                          {/* TARJETA DE VIDEO - MODIFICADA */}
+                          <div className="relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 hover:border-primary/30 group-hover/card:-translate-y-2 h-full">
+
+                            {/* Thumbnail */}
+                            <div
+                              className="relative aspect-video overflow-hidden cursor-pointer bg-gradient-to-br from-gray-900 to-gray-800 flex-shrink-0"
+                              onClick={() => openVideoPreview(video)}
+                            >
+                              {renderVideoThumbnail(video)}
+
+                              {/* Badge de plataforma */}
+                              <div className="absolute top-4 left-4 z-10">
+                                <Badge
+                                  className={`px-3 py-1.5 font-semibold backdrop-blur-sm border-0 ${isYouTube ? 'bg-red-600/90 hover:bg-red-600' : isVimeo ? 'bg-blue-600/90 hover:bg-blue-600' : 'bg-gray-800/90 hover:bg-gray-800'}`}
+                                >
                                   {isYouTube ? 'YouTube' : isVimeo ? 'Vimeo' : 'Video'}
-                                </div>
-                                
-                                {/* MOSTRAR EL NÚMERO DE ORDEN - REMOVIDO */}
-                                
-                                {isAdmin && (
-                                  <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 z-20 flex gap-0.5 sm:gap-1">
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                        <Button
-                                          size="icon"
-                                          className="h-6 w-6 sm:h-8 sm:w-8 bg-white/90 hover:bg-white text-gray-900 backdrop-blur-sm"
-                                          aria-label="Opciones del video"
-                                        >
-                                          <MoreVertical className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent 
-                                        className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[140px] sm:min-w-[160px]"
-                                        align="end"
-                                      >
-                                        <DropdownMenuItem 
-                                          className="cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-xs sm:text-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleEditVideo(video)
-                                          }}
-                                        >
-                                          <Pencil className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2 text-gray-600" />
-                                          <span className="text-gray-700">Editar video</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem 
-                                          className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 text-xs sm:text-sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            confirmDelete('video', video.id)
-                                          }}
-                                        >
-                                          <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2" />
-                                          <span>Eliminar video</span>
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                )}
+                                </Badge>
                               </div>
-                              
-                              {/* Contenido del video - CORREGIDO: texto completo visible */}
-                              <div className="flex-grow min-h-[100px]">
-                                <h3 className="font-bold text-base sm:text-lg text-foreground mb-1.5 sm:mb-2">
-                                  {video.titulo}
-                                </h3>
-                                <p className="text-xs sm:text-sm text-foreground/70 mb-3 sm:mb-4">
+
+                              {/* Botón de play con animación */}
+                              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${hoveredVideo === video.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+                                <div className="relative">
+                                  <div className="absolute inset-0 animate-ping-slow rounded-full bg-white/30"></div>
+                                  <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/90 shadow-2xl flex items-center justify-center transform group-hover/card:scale-110 transition-transform duration-300">
+                                    <Play className="h-7 w-7 text-gray-900 ml-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Controles de administrador */}
+                              {isAdmin && (
+                                <div className="absolute top-4 right-4 z-10">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                      <Button
+                                        size="icon"
+                                        className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
+                                        aria-label="Opciones del video"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[160px] shadow-xl"
+                                      align="end"
+                                    >
+                                      <DropdownMenuItem
+                                        className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50 text-sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleEditVideo(video)
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4 mr-2 text-blue-600" />
+                                        <span>Editar video</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 text-sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          confirmDelete('video', video.id)
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        <span>Eliminar video</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              )}
+
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent pointer-events-none"></div>
+                            </div>
+
+                            {/* Contenido de la tarjeta */}
+                            <div className="p-5 flex flex-col flex-grow">
+                              {/* Título */}
+                              <h3 className="font-bold text-lg text-gray-900 mb-3 leading-tight group-hover/card:text-primary transition-colors duration-300">
+                                {video.titulo}
+                              </h3>
+
+                              {/* Descripción - ESPACIO ADECUADO Y VISIBLE */}
+                              <div className="mb-5 flex-grow">
+                                <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">
                                   {video.descripcion}
                                 </p>
                               </div>
-                              
+
                               {/* Botones de acción */}
-                              <div className="flex gap-1.5 sm:gap-2 mt-4">
+                              <div className="flex gap-2 mt-auto">
                                 <Button
-                                  size="sm"
-                                  className="flex-1 bg-primary hover:bg-primary/90 h-8 sm:h-9 text-xs sm:text-sm"
+                                  size="default"
+                                  className="flex-1 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-md hover:shadow-lg transition-all duration-300 group/play"
                                   onClick={() => openVideoPreview(video)}
                                 >
-                                  <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 hidden sm:inline" />
-                                  <Play className="h-3 w-3 sm:h-4 sm:w-4 inline sm:hidden" />
-                                  <span className="hidden sm:inline">Ver Ahora</span>
+                                  <Play className="h-4 w-4 mr-2 group-hover/play:scale-110 transition-transform duration-200" />
+                                  Ver Video
                                 </Button>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     window.open(video.video_url, "_blank")
                                   }}
-                                  className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                                  className="border-gray-300 hover:border-primary hover:bg-primary/5 hover:scale-110 transition-all duration-300"
                                   title="Abrir en nueva pestaña"
                                 >
-                                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  <ExternalLink className="h-4 w-4" />
                                   <span className="sr-only">Abrir en nueva pestaña</span>
                                 </Button>
                               </div>
                             </div>
-                          </CarouselItem>
-                        )
-                      })}
-                    </CarouselContent>
-                    
-                    <CarouselPrevious 
-                      className="absolute -left-10 sm:-left-12 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-white hover:bg-gray-50 text-gray-900 border shadow-lg hidden lg:flex"
-                      data-carousel="previous"
-                    >
-                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </CarouselPrevious>
-                    <CarouselNext 
-                      className="absolute -right-10 sm:-right-12 top-1/2 -translate-y-1/2 h-8 w-8 sm:h-10 sm:w-10 bg-white hover:bg-gray-50 text-gray-900 border shadow-lg hidden lg:flex"
-                      data-carousel="next"
-                    >
-                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </CarouselNext>
-                  </Carousel>
-                  
-                  {/* Botones responsive para videos */}
-                  <div className="flex justify-center gap-3 sm:gap-4 mt-4 sm:mt-6 lg:hidden">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="rounded-full h-8 w-8 sm:h-9 sm:w-9"
-                      onClick={handleVideosPrevious}
-                    >
-                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="rounded-full h-8 w-8 sm:h-9 sm:w-9"
-                      onClick={handleVideosNext}
-                    >
-                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </Button>
+
+                            {/* Efecto de borde animado */}
+                            <div className="absolute inset-0 border-2 border-transparent rounded-2xl group-hover/card:border-primary/20 transition-all duration-500 pointer-events-none"></div>
+
+                            {/* Efecto de brillo en hover */}
+                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/5 group-hover/card:via-primary/2 group-hover/card:to-primary/5 transition-all duration-500 pointer-events-none"></div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="text-center py-8 sm:py-12">
+                <div className="text-center py-16 sm:py-20">
                   <div className="max-w-md mx-auto">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Play className="h-6 w-6 sm:h-8 sm:w-8 text-primary/50" />
+                    <div className="relative mb-8">
+                      <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                        <Film className="h-12 w-12 text-primary/50" />
+                      </div>
+                      <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full border-2 border-primary/10 animate-pulse-slow"></div>
                     </div>
-                    <p className="text-foreground/60 mb-3 sm:mb-4 text-sm sm:text-base">No hay videos disponibles.</p>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">No hay videos disponibles</h3>
+                    <p className="text-gray-600 mb-8 max-w-sm mx-auto">
+                      Aún no se han agregado videos a la biblioteca. Agrega el primero para comenzar.
+                    </p>
                     {isAdmin && (
-                      <Button onClick={handleCreateVideo} variant="outline" className="h-9 sm:h-10 px-3 sm:px-4">
-                        <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                        Agregar el primer video
+                      <Button
+                        onClick={handleCreateVideo}
+                        size="lg"
+                        className="h-12 px-8 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-xl hover:shadow-2xl"
+                      >
+                        <Plus className="h-5 w-5 mr-3" />
+                        Agregar primer video
                       </Button>
                     )}
                   </div>
@@ -1489,7 +1496,7 @@ export default function Home() {
         ) : null}
 
         {/* Sección Informativa */}
-        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
+        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background overflow-x-hidden">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <span className="inline-block px-3 py-1 rounded-full bg-primary-lighter text-primary font-medium text-xs mb-4 sm:mb-6">
               SOBRE ESTE PROYECTO
@@ -1531,31 +1538,29 @@ export default function Home() {
 
       {/* Modal de Preview de Video */}
       <Dialog open={videoPreviewOpen} onOpenChange={setVideoPreviewOpen}>
-        <DialogContent className="max-w-3xl lg:max-w-4xl w-[95vw] p-0 bg-black border-0 overflow-hidden">
+        <DialogContent className="max-w-4xl lg:max-w-5xl w-[95vw] p-0 bg-black border-0 overflow-hidden rounded-lg sm:rounded-xl">
           <DialogHeader className="sr-only">
             <DialogTitle>Reproductor de video: {selectedVideo?.titulo}</DialogTitle>
           </DialogHeader>
-          
+
           {selectedVideo && (
             <div className="relative">
-              {/* Encabezado personalizado */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/80 to-transparent">
-                <div className="max-w-[75%]">
-                  <h3 className="text-white font-bold text-base sm:text-lg">{selectedVideo.titulo}</h3>
-                  <p className="text-white/70 text-xs sm:text-sm">{selectedVideo.descripcion}</p>
+              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-black/90 to-transparent">
+                <div className="max-w-[80%]">
+                  <h3 className="text-white font-bold text-lg sm:text-xl truncate">{selectedVideo.titulo}</h3>
+                  <p className="text-white/70 text-sm truncate">{selectedVideo.descripcion}</p>
                 </div>
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={closeVideoPreview}
-                  className="text-white hover:bg-white/20 flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9"
+                  className="text-white hover:bg-white/20 flex-shrink-0 h-9 w-9 sm:h-10 sm:w-10"
                   aria-label="Cerrar reproductor"
                 >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <X className="h-5 w-5" />
                 </Button>
               </div>
 
-              {/* Reproductor */}
               <div className="relative aspect-video bg-black">
                 {detectVideoType(selectedVideo.video_url) === 'youtube' ? (
                   <iframe
@@ -1589,62 +1594,60 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Controles personalizados para videos directos */}
               {detectVideoType(selectedVideo.video_url) === 'direct' && (
-                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent">
-                  <div className="flex items-center justify-center gap-2 sm:gap-4">
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent">
+                  <div className="flex items-center justify-center gap-3 sm:gap-4">
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={togglePlayPause}
-                      className="text-white hover:bg-white/20 h-8 w-8 sm:h-9 sm:w-9"
+                      className="text-white hover:bg-white/20 h-9 w-9 sm:h-10 sm:w-10"
                       aria-label={isPlaying ? "Pausar video" : "Reproducir video"}
                     >
                       {isPlaying ? (
-                        <div className="w-4 h-4 sm:w-6 sm:h-6 bg-white rounded-sm" aria-hidden="true" />
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-sm" aria-hidden="true" />
                       ) : (
-                        <Play className="h-4 w-4 sm:h-6 sm:w-6" />
+                        <Play className="h-5 w-5 sm:h-6 sm:w-6" />
                       )}
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={toggleMute}
-                      className="text-white hover:bg-white/20 h-8 w-8 sm:h-9 sm:w-9"
+                      className="text-white hover:bg-white/20 h-9 w-9 sm:h-10 sm:w-10"
                       aria-label={isMuted ? "Activar sonido" : "Silenciar"}
                     >
                       {isMuted ? (
-                        <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <VolumeX className="h-5 w-5" />
                       ) : (
-                        <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <Volume2 className="h-5 w-5" />
                       )}
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       onClick={toggleFullscreen}
-                      className="text-white hover:bg-white/20 h-8 w-8 sm:h-9 sm:w-9"
+                      className="text-white hover:bg-white/20 h-9 w-9 sm:h-10 sm:w-10"
                       aria-label={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
                     >
-                      <Maximize2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <Maximize2 className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Pie del modal */}
-              <div className="p-3 sm:p-4 bg-black">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+              <div className="p-4 sm:p-6 bg-gray-900">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                   <div className="flex-1">
-                    <p className="text-white/70 text-xs sm:text-sm">{selectedVideo.descripcion}</p>
+                    <p className="text-white/70 text-sm line-clamp-2">{selectedVideo.descripcion}</p>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="default"
                     size="sm"
                     onClick={() => window.open(selectedVideo.video_url, "_blank")}
-                    className="text-white border-white/30 hover:bg-white/10 whitespace-nowrap h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                    className="bg-primary hover:bg-primary/90 text-white border-0 whitespace-nowrap h-9 sm:h-10 px-3 sm:px-4 text-sm mt-2 sm:mt-0 hover:scale-105 transition-all duration-200"
                   >
-                    <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                    <ExternalLink className="h-4 w-4 mr-1.5 sm:mr-2" />
                     Abrir original
                   </Button>
                 </div>
@@ -1656,7 +1659,7 @@ export default function Home() {
 
       {/* Diálogo para Imágenes */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingImage ? "Editar Imagen" : "Agregar Imagen"}
@@ -1675,6 +1678,7 @@ export default function Home() {
                   })
                 }
                 placeholder="https://ejemplo.com/imagen.jpg"
+                className="w-full break-words"
               />
             </div>
             <div>
@@ -1689,6 +1693,7 @@ export default function Home() {
                   })
                 }
                 placeholder="Descripción de la imagen"
+                className="w-full break-words"
               />
             </div>
             <div>
@@ -1718,7 +1723,6 @@ export default function Home() {
             {imageFormData.imagen_url && (
               <div className="mt-4">
                 <Label>Vista Previa</Label>
-                {/* VISTA PREVIA CON DIMENSIONES PROPORCIONALES AL HERO */}
                 <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-[16/9] rounded-lg overflow-hidden border border-gray-200 mt-1.5">
                   <Image
                     src={imageFormData.imagen_url}
@@ -1734,7 +1738,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => setImageDialogOpen(false)}
@@ -1748,7 +1752,7 @@ export default function Home() {
 
       {/* Diálogo para Videos */}
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingVideo ? "Editar Video" : "Agregar Video"}
@@ -1764,6 +1768,7 @@ export default function Home() {
                   setVideoFormData({ ...videoFormData, titulo: e.target.value })
                 }
                 placeholder="Título del video"
+                className="w-full break-words"
               />
             </div>
             <div>
@@ -1779,6 +1784,7 @@ export default function Home() {
                 }
                 placeholder="Descripción del video"
                 rows={3}
+                className="w-full resize-none break-words min-h-[80px]"
               />
             </div>
             <div>
@@ -1793,6 +1799,7 @@ export default function Home() {
                   })
                 }
                 placeholder="https://youtube.com/watch?v=..."
+                className="w-full break-words"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Soporta YouTube, Vimeo y enlaces directos a videos
@@ -1825,7 +1832,7 @@ export default function Home() {
             {videoFormData.video_url && (
               <div className="mt-4">
                 <Label>Vista Previa del Enlace</Label>
-                <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted rounded">
+                <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted rounded break-words">
                   {detectVideoType(videoFormData.video_url) === 'youtube' && (
                     <span className="flex items-center gap-1">
                       <span className="text-red-500 font-medium">YouTube</span> detectado
@@ -1843,7 +1850,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => setVideoDialogOpen(false)}
@@ -1861,8 +1868,8 @@ export default function Home() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. {itemToDelete?.type === 'image' 
-                ? 'La imagen será eliminada permanentemente.' 
+              Esta acción no se puede deshacer. {itemToDelete?.type === 'image'
+                ? 'La imagen será eliminada permanentemente.'
                 : 'El video será eliminado permanentemente.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1878,7 +1885,6 @@ export default function Home() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Estilos CSS globales */}
       <style jsx global>{`
         @keyframes leaf-float {
           0%, 100% { 
@@ -1958,21 +1964,6 @@ export default function Home() {
           }
         }
 
-        @keyframes plant-grow {
-          0% { 
-            transform: scale(0) rotate(0deg);
-            opacity: 0;
-          }
-          50% { 
-            transform: scale(1.2) rotate(180deg);
-            opacity: 0.5;
-          }
-          100% { 
-            transform: scale(1) rotate(360deg);
-            opacity: 0.3;
-          }
-        }
-
         @keyframes grow-in {
           from {
             opacity: 0;
@@ -1995,12 +1986,23 @@ export default function Home() {
           }
         }
 
-        @keyframes fade-in {
-          from {
+        @keyframes ping-slow {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.8;
+          }
+          50% {
+            transform: scale(1.5);
             opacity: 0;
           }
-          to {
+        }
+
+        @keyframes pulse-slow {
+          0%, 100% {
             opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
           }
         }
 
@@ -2041,10 +2043,6 @@ export default function Home() {
           animation: pulse-drop 2s ease-in-out infinite;
         }
 
-        .animate-plant-grow {
-          animation: plant-grow 2s ease-in-out infinite;
-        }
-
         .animate-grow-in {
           animation: grow-in 0.2s ease-out forwards;
         }
@@ -2055,18 +2053,20 @@ export default function Home() {
           animation-delay: 0.3s;
         }
 
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
+        .animate-ping-slow {
+          animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
 
-        /* Mantener el color original del hero */
+        .animate-pulse-slow {
+          animation: pulse-slow 3s ease-in-out infinite;
+        }
+
         .gradient-eco {
           background: linear-gradient(135deg, #0e8b4d 0%, #24b12f 25%, #17a72f 50%, #13642e 75%, #0b632d 100%);
           position: relative;
           overflow: hidden;
         }
 
-        /* Efecto de luz solar filtrada */
         .gradient-eco::before {
           content: '';
           position: absolute;
@@ -2098,7 +2098,6 @@ export default function Home() {
           }
         }
 
-        /* Patrón de hojas muy sutiles de fondo */
         .gradient-eco::after {
           content: '';
           position: absolute;
@@ -2114,6 +2113,41 @@ export default function Home() {
             radial-gradient(circle at 70% 10%, rgba(34, 197, 94, 0.03) 0%, transparent 2%);
           background-size: 200px 200px;
           pointer-events: none;
+        }
+
+        .break-words {
+          word-break: break-word;
+          overflow-wrap: break-word;
+        }
+
+        .overflow-y-auto {
+          overflow-y: auto;
+        }
+
+        .max-h-\[90vh\] {
+          max-height: 90vh;
+        }
+
+        .line-clamp-2 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
+        .line-clamp-4 {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 4;
+        }
+
+        .leading-snug {
+          line-height: 1.375;
+        }
+
+        .leading-relaxed {
+          line-height: 1.625;
         }
       `}</style>
     </div>
