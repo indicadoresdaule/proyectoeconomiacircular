@@ -54,7 +54,13 @@ import {
   Eye,
   ThumbsUp,
   Youtube,
-  Film
+  Film,
+  ChevronDown,
+  ChevronUp,
+  Maximize,
+  Minimize,
+  Expand,
+  Compress
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import Autoplay from "embla-carousel-autoplay"
@@ -68,6 +74,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface HeroImage {
   id: string
@@ -95,6 +102,307 @@ interface LeafAnimationProps {
 
 interface WaterDropProps {
   index: number
+}
+
+interface VideoCardProps {
+  video: HomeVideo
+  isAdmin: boolean
+  onEdit: (video: HomeVideo) => void
+  onDelete: (id: string) => void
+  onPreview: (video: HomeVideo) => void
+  onOrderChange: (videoId: string, direction: 'up' | 'down') => void
+  index: number
+  totalVideos: number
+}
+
+// Componente de tarjeta de video reutilizable y mejorado
+const VideoCard = ({ 
+  video, 
+  isAdmin, 
+  onEdit, 
+  onDelete, 
+  onPreview, 
+  onOrderChange, 
+  index,
+  totalVideos
+}: VideoCardProps) => {
+  const [hovered, setHovered] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const descRef = useRef<HTMLParagraphElement>(null)
+  
+  const videoType = video.tipo || (video.video_url.includes('youtube') ? 'youtube' : 
+    video.video_url.includes('vimeo') ? 'vimeo' : 'direct')
+  const isYouTube = videoType === 'youtube'
+  const isVimeo = videoType === 'vimeo'
+
+  // Detectar si el título o descripción necesitan expansión
+  useEffect(() => {
+    if (titleRef.current) {
+      const isOverflowing = titleRef.current.scrollHeight > titleRef.current.clientHeight
+    }
+    if (descRef.current) {
+      const isOverflowing = descRef.current.scrollHeight > descRef.current.clientHeight
+    }
+  }, [video.titulo, video.descripcion])
+
+  // Función para extraer ID de YouTube
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
+  // Función para extraer ID de Vimeo
+  const getVimeoId = (url: string) => {
+    const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/
+    const match = url.match(regExp)
+    return match ? match[1] : null
+  }
+
+  // Renderizar thumbnail
+  const renderVideoThumbnail = () => {
+    if (isYouTube) {
+      const videoId = getYouTubeId(video.video_url)
+      if (videoId) {
+        return (
+          <div className="relative w-full h-full overflow-hidden">
+            <img
+              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+              alt={video.titulo}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+              loading="lazy"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
+          </div>
+        )
+      }
+    } else if (isVimeo) {
+      const videoId = getVimeoId(video.video_url)
+      if (videoId) {
+        return (
+          <div className="relative w-full h-full overflow-hidden">
+            <img
+              src={`https://vumbnail.com/${videoId}.jpg`}
+              alt={video.titulo}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
+          </div>
+        )
+      }
+    }
+
+    return (
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center overflow-hidden">
+        <div className="relative z-10">
+          <Play className="size-20 text-white/80 drop-shadow-2xl" />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-accent/20 animate-pulse-slow" />
+      </div>
+    )
+  }
+
+  const handleToggleExpand = () => {
+    setIsExpanded(!isExpanded)
+  }
+
+  return (
+    <div
+      className={cn(
+        "group/card relative flex flex-col transition-all duration-500",
+        isExpanded ? "row-span-2" : ""
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Tarjeta principal */}
+      <div className={cn(
+        "relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover/card:-translate-y-2 h-full"
+      )}>
+        {/* Thumbnail */}
+        <div
+          className="relative aspect-video overflow-hidden cursor-pointer bg-gradient-to-br from-gray-900 to-gray-800 flex-shrink-0"
+          onClick={() => onPreview(video)}
+        >
+          {renderVideoThumbnail()}
+
+          {/* Badge de plataforma */}
+          <div className="absolute top-4 left-4 z-10">
+            <Badge
+              className={`px-3 py-1.5 font-semibold backdrop-blur-sm border-0 ${isYouTube ? 'bg-red-600/90 hover:bg-red-600' : isVimeo ? 'bg-blue-600/90 hover:bg-blue-600' : 'bg-gray-800/90 hover:bg-gray-800'}`}
+            >
+              {isYouTube ? 'YouTube' : isVimeo ? 'Vimeo' : 'Video'}
+            </Badge>
+          </div>
+
+          {/* Controles de administrador */}
+          {isAdmin && (
+            <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <Button
+                size="icon"
+                className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(video)
+                }}
+                title="Editar video"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(video.id)
+                }}
+                title="Eliminar video"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Botón de play con animación */}
+          <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${hovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className="relative">
+              <div className="absolute inset-0 animate-ping-slow rounded-full bg-white/30"></div>
+              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/90 shadow-2xl flex items-center justify-center transform group-hover/card:scale-110 transition-transform duration-300">
+                <Play className="h-7 w-7 text-gray-900 ml-0.5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Controles de orden para admin */}
+          {isAdmin && (
+            <div className="absolute bottom-4 right-4 z-10 flex gap-1">
+              {index > 0 && (
+                <Button
+                  size="icon"
+                  className="h-7 w-7 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onOrderChange(video.id, 'up')
+                  }}
+                  title="Mover hacia arriba"
+                >
+                  <ArrowUp className="h-3 w-3" />
+                </Button>
+              )}
+              {index < totalVideos - 1 && (
+                <Button
+                  size="icon"
+                  className="h-7 w-7 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onOrderChange(video.id, 'down')
+                  }}
+                  title="Mover hacia abajo"
+                >
+                  <ArrowDown className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent pointer-events-none"></div>
+        </div>
+
+        {/* Contenido de la tarjeta - MEJORADO */}
+        <div className="p-5 flex flex-col flex-grow">
+          {/* Encabezado con título */}
+          <div className="mb-3">
+            <h3 
+              ref={titleRef}
+              className={cn(
+                "font-bold text-gray-900 leading-tight transition-colors duration-300 text-balance",
+                !isExpanded ? "line-clamp-2" : ""
+              )}
+            >
+              {video.titulo}
+            </h3>
+          </div>
+
+          {/* Descripción */}
+          <div className={cn(
+            "mb-4 flex-grow overflow-hidden transition-all duration-300",
+            isExpanded ? "max-h-none" : "max-h-[100px]"
+          )}>
+            <p 
+              ref={descRef}
+              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-2 text-pretty break-words hyphens-auto"
+            >
+              {video.descripcion}
+            </p>
+            
+            {/* Indicador de que hay más contenido (solo cuando no está expandido) */}
+            {!isExpanded && (
+              <div className="absolute bottom-16 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent h-6 pointer-events-none" />
+            )}
+          </div>
+
+          {/* Botón único para expandir/contraer */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mb-4 text-gray-500 hover:text-primary hover:bg-primary/10"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleToggleExpand()
+            }}
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-2" />
+                Mostrar menos
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-2" />
+                Mostrar más
+              </>
+            )}
+          </Button>
+
+          {/* Botones de acción */}
+          <div className="flex gap-2 mt-auto">
+            <Button
+              size="default"
+              className="flex-1 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-md hover:shadow-lg transition-all duration-300 group/play text-nowrap"
+              onClick={() => onPreview(video)}
+            >
+              <Play className="h-4 w-4 mr-2 group-hover/play:scale-110 transition-transform duration-200" />
+              Ver Video
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(video.video_url, "_blank")
+              }}
+              className="border-gray-300 hover:border-primary hover:bg-primary/5 hover:scale-110 transition-all duration-300 flex-shrink-0"
+              title="Abrir en nueva pestaña"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Efectos visuales */}
+        <div className="absolute inset-0 border-2 border-transparent rounded-2xl group-hover/card:border-primary/20 transition-all duration-500 pointer-events-none"></div>
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/5 group-hover/card:via-primary/2 group-hover/card:to-primary/5 transition-all duration-500 pointer-events-none"></div>
+      </div>
+    </div>
+  )
 }
 
 export default function Home() {
@@ -139,7 +447,6 @@ export default function Home() {
 
   // Carousel refs para control manual
   const carouselRef = useRef<HTMLDivElement>(null)
-  const videosCarouselRef = useRef<HTMLDivElement>(null)
 
   // Estados para animaciones
   const [leafPositions, setLeafPositions] = useState<Array<{
@@ -156,9 +463,6 @@ export default function Home() {
     animationDuration: string
   }>>([])
 
-  // Estado para hover de tarjetas
-  const [hoveredVideo, setHoveredVideo] = useState<string | null>(null)
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -166,7 +470,6 @@ export default function Home() {
   // Inicializar animaciones solo en el cliente
   useEffect(() => {
     if (mounted) {
-      // Generar posiciones para hojas
       const leafPos = Array.from({ length: 12 }).map((_, i) => ({
         left: `${Math.random() * 100}%`,
         top: `${Math.random() * 100}%`,
@@ -176,7 +479,6 @@ export default function Home() {
       }))
       setLeafPositions(leafPos)
 
-      // Generar posiciones para gotas de agua
       const waterPos = Array.from({ length: 8 }).map((_, i) => ({
         left: `${10 + (i * 12)}%`,
         animationDelay: `${Math.random() * 3}s`,
@@ -216,7 +518,6 @@ export default function Home() {
           throw new Error(`Error HTTP: ${response.status}`)
         }
         const data = await response.json()
-        // Ordenar las imágenes por el campo 'orden'
         const sortedImages = data.sort((a: HeroImage, b: HeroImage) => a.orden - b.orden)
         setHeroImages(sortedImages)
       } catch (error) {
@@ -243,16 +544,10 @@ export default function Home() {
           throw new Error(`Error HTTP: ${response.status}`)
         }
         const data = await response.json()
-        // Ordenar videos por el campo 'orden'
         const sortedVideos = data.sort((a: HomeVideo, b: HomeVideo) => a.orden - b.orden)
-        // Detectar tipo de video y agregar datos simulados
         const videosWithType = sortedVideos.map((video: HomeVideo, index: number) => ({
           ...video,
-          tipo: detectVideoType(video.video_url),
-          duracion: `${Math.floor(Math.random() * 10) + 1}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-          vistas: Math.floor(Math.random() * 10000) + 1000,
-          likes: Math.floor(Math.random() * 500) + 50,
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          tipo: detectVideoType(video.video_url)
         }))
         setVideos(videosWithType)
       } catch (error) {
@@ -294,35 +589,8 @@ export default function Home() {
     return match ? match[1] : null
   }
 
-  // Formatear números
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K'
-    }
-    return num.toString()
-  }
-
-  // Formatear fecha
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return 'Hoy'
-    if (diffDays === 1) return 'Ayer'
-    if (diffDays < 7) return `Hace ${diffDays} días`
-    if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semanas`
-    if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} meses`
-    return `Hace ${Math.floor(diffDays / 365)} años`
-  }
-
   // Funciones para imágenes
   const handleCreateImage = () => {
-    // Calcular el siguiente orden disponible
     const nextOrden = heroImages.length > 0
       ? Math.max(...heroImages.map(img => img.orden)) + 1
       : 0
@@ -356,13 +624,11 @@ export default function Home() {
 
     if (direction === 'up' && imageIndex > 0) {
       const previousImage = newImages[imageIndex - 1]
-      // Intercambiar órdenes
       const tempOrden = currentImage.orden
       currentImage.orden = previousImage.orden
       previousImage.orden = tempOrden
     } else if (direction === 'down' && imageIndex < newImages.length - 1) {
       const nextImage = newImages[imageIndex + 1]
-      // Intercambiar órdenes
       const tempOrden = currentImage.orden
       currentImage.orden = nextImage.orden
       nextImage.orden = tempOrden
@@ -370,11 +636,9 @@ export default function Home() {
       return
     }
 
-    // Ordenar la lista por el nuevo orden
     newImages.sort((a, b) => a.orden - b.orden)
 
     try {
-      // Actualizar ambas imágenes en la base de datos
       const updates = newImages.map(img =>
         fetch(`/api/hero-images/${img.id}`, {
           method: "PUT",
@@ -463,7 +727,6 @@ export default function Home() {
         updatedImages = [...heroImages, { ...data, orden: imageFormData.orden }]
       }
 
-      // Ordenar las imágenes después de guardar
       updatedImages.sort((a, b) => a.orden - b.orden)
       setHeroImages(updatedImages)
 
@@ -484,7 +747,6 @@ export default function Home() {
 
   // Funciones para videos
   const handleCreateVideo = () => {
-    // Calcular el siguiente orden disponible
     const nextOrden = videos.length > 0
       ? Math.max(...videos.map(v => v.orden)) + 1
       : 0
@@ -520,13 +782,11 @@ export default function Home() {
 
     if (direction === 'up' && videoIndex > 0) {
       const previousVideo = newVideos[videoIndex - 1]
-      // Intercambiar órdenes
       const tempOrden = currentVideo.orden
       currentVideo.orden = previousVideo.orden
       previousVideo.orden = tempOrden
     } else if (direction === 'down' && videoIndex < newVideos.length - 1) {
       const nextVideo = newVideos[videoIndex + 1]
-      // Intercambiar órdenes
       const tempOrden = currentVideo.orden
       currentVideo.orden = nextVideo.orden
       nextVideo.orden = tempOrden
@@ -534,11 +794,9 @@ export default function Home() {
       return
     }
 
-    // Ordenar la lista por el nuevo orden
     newVideos.sort((a, b) => a.orden - b.orden)
 
     try {
-      // Actualizar ambos videos en la base de datos
       const updates = newVideos.map(video =>
         fetch(`/api/home-videos/${video.id}`, {
           method: "PUT",
@@ -580,6 +838,7 @@ export default function Home() {
       }
 
       setVideos(videos.filter((v) => v.id !== videoId))
+      
       toast({
         title: "Video eliminado",
         description: "El video se eliminó correctamente.",
@@ -635,7 +894,6 @@ export default function Home() {
         }]
       }
 
-      // Ordenar los videos después de guardar
       updatedVideos.sort((a, b) => a.orden - b.orden)
       setVideos(updatedVideos)
 
@@ -727,61 +985,6 @@ export default function Home() {
     }
   }
 
-  // Renderizar thumbnail de video basado en tipo
-  const renderVideoThumbnail = (video: HomeVideo) => {
-    const videoType = detectVideoType(video.video_url)
-
-    if (videoType === 'youtube') {
-      const videoId = getYouTubeId(video.video_url)
-      if (videoId) {
-        return (
-          <div className="relative w-full h-full overflow-hidden">
-            <img
-              src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
-              alt={video.titulo}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-              loading="lazy"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-              }}
-            />
-            {/* Efecto de gradiente dinámico */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
-            {/* Efecto de brillo en hover */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
-          </div>
-        )
-      }
-    } else if (videoType === 'vimeo') {
-      const videoId = getVimeoId(video.video_url)
-      if (videoId) {
-        return (
-          <div className="relative w-full h-full overflow-hidden">
-            <img
-              src={`https://vumbnail.com/${videoId}.jpg`}
-              alt={video.titulo}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
-          </div>
-        )
-      }
-    }
-
-    // Thumbnail por defecto
-    return (
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center overflow-hidden">
-        <div className="relative z-10">
-          <Play className="size-20 text-white/80 drop-shadow-2xl" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-accent/20 animate-pulse-slow" />
-      </div>
-    )
-  }
-
   // Funciones para control manual del carrusel
   const handlePrevious = () => {
     if (carouselRef.current) {
@@ -793,20 +996,6 @@ export default function Home() {
   const handleNext = () => {
     if (carouselRef.current) {
       const nextBtn = carouselRef.current.querySelector('[data-carousel="next"]') as HTMLElement
-      nextBtn?.click()
-    }
-  }
-
-  const handleVideosPrevious = () => {
-    if (videosCarouselRef.current) {
-      const prevBtn = videosCarouselRef.current.querySelector('[data-carousel="previous"]') as HTMLElement
-      prevBtn?.click()
-    }
-  }
-
-  const handleVideosNext = () => {
-    if (videosCarouselRef.current) {
-      const nextBtn = videosCarouselRef.current.querySelector('[data-carousel="next"]') as HTMLElement
       nextBtn?.click()
     }
   }
@@ -876,21 +1065,19 @@ export default function Home() {
   )
 
   return (
-    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header />
 
-      <main className="flex-grow w-full overflow-x-hidden">
-        {/* Hero Section con Carrusel de Imágenes - ANIMACIONES AMBIENTALES */}
-        <section className="gradient-eco text-white py-8 sm:py-12 md:py-16 lg:py-24 relative overflow-hidden">
-          {/* Hojas flotantes animadas */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <main className="flex-grow w-full">
+        {/* Hero Section */}
+        <section className="gradient-eco text-white py-8 sm:py-12 md:py-16 lg:py-24 relative">
+          <div className="absolute inset-0 pointer-events-none">
             {Array.from({ length: 12 }).map((_, i) => (
               <LeafAnimation key={i} index={i} />
             ))}
           </div>
 
-          {/* Gotas de agua cayendo */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 pointer-events-none">
             {Array.from({ length: 8 }).map((_, i) => (
               <WaterDropAnimation key={i} index={i} />
             ))}
@@ -898,7 +1085,6 @@ export default function Home() {
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              {/* Contenido izquierdo */}
               <div className="max-w-2xl lg:max-w-xl">
                 <span className="inline-block px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium mb-3 sm:mb-4 animate-glow">
                   Sistema de Seguimiento e Indicadores
@@ -906,14 +1092,13 @@ export default function Home() {
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 lg:mb-6 text-balance leading-tight animate-text-reveal">
                   Seguimiento e Indicadores para la Gestión de Residuos Domiciliarios
                 </h1>
-                <p className="text-sm sm:text-base md:text-lg text-white/90 mb-3 sm:mb-4 text-balance leading-relaxed animate-text-reveal-delay">
+                <p className="text-sm sm:text-base md:text-lg text-white/90 mb-3 sm:mb-4 text-balance leading-relaxed animate-text-reveal-delay text-pretty">
                   Plataforma integral de monitoreo y evaluación para la gestión
                   sostenible de residuos. Consulte métricas, indicadores de
                   desempeño y objetivos ambientales
                 </p>
               </div>
 
-              {/* Carrusel de imágenes derecho */}
               <div className="relative">
                 {!loadingImages && heroImages.length > 0 ? (
                   <div className="relative group" ref={carouselRef}>
@@ -953,7 +1138,7 @@ export default function Home() {
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                     </svg>
-                                    <p className="text-white text-xs sm:text-sm font-medium">
+                                    <p className="text-white text-xs sm:text-sm font-medium text-pretty">
                                       {image.alt_text}
                                     </p>
                                   </div>
@@ -1026,7 +1211,7 @@ export default function Home() {
                     <Button
                       size="sm"
                       onClick={handleCreateImage}
-                      className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 text-xs sm:text-sm group/btn"
+                      className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 text-xs sm:text-sm group/btn text-nowrap"
                     >
                       <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 group-hover/btn:rotate-90 transition-transform duration-300" />
                       Agregar Imagen
@@ -1037,7 +1222,7 @@ export default function Home() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600/20 text-white border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105 transition-all duration-300 text-xs sm:text-sm"
+                            className="h-8 sm:h-9 px-2 sm:px-3 bg-emerald-600/20 text-white border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105 transition-all duration-300 text-xs sm:text-sm text-nowrap"
                           >
                             <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Gestionar ({heroImages.length})
@@ -1058,15 +1243,15 @@ export default function Home() {
                               onSelect={(e) => e.preventDefault()}
                             >
                               <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-mono bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs font-mono bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded flex-shrink-0">
                                     #{image.orden}
                                   </span>
-                                  <span className="text-xs sm:text-sm font-medium text-emerald-900 truncate max-w-[120px] sm:max-w-[150px]">
+                                  <span className="text-xs sm:text-sm font-medium text-emerald-900 truncate text-pretty">
                                     {image.alt_text || `Imagen ${index + 1}`}
                                   </span>
                                 </div>
-                                <div className="flex gap-1">
+                                <div className="flex gap-1 flex-shrink-0">
                                   {index > 0 && (
                                     <Button
                                       size="icon"
@@ -1143,16 +1328,16 @@ export default function Home() {
         </section>
 
         {/* Sección de Tarjetas */}
-        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background overflow-x-hidden">
+        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8 sm:mb-12 lg:mb-16">
               <span className="inline-block px-3 py-1 rounded-full bg-accent-lighter text-accent font-medium text-xs mb-3">
                 SECCIONES PRINCIPALES
               </span>
-              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-3 sm:mb-4 text-balance">
                 Navega por el contenido
               </h2>
-              <p className="text-foreground/60 max-w-2xl text-sm sm:text-base lg:text-lg">
+              <p className="text-foreground/60 max-w-2xl text-sm sm:text-base lg:text-lg text-pretty">
                 Accede a detalles sobre nuestros compromisos ecológicos y
                 métricas actualizadas de manejo de desechos.
               </p>
@@ -1202,10 +1387,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* SECCIÓN DE VIDEOS - MODIFICADA */}
+        {/* SECCIÓN DE VIDEOS - SIMPLIFICADA */}
         {(!loadingVideos && videos.length > 0) || isAdmin ? (
-          <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white overflow-x-hidden relative">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white relative">
+            <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl"></div>
               <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl"></div>
             </div>
@@ -1213,14 +1398,14 @@ export default function Home() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
               {/* Encabezado de la sección */}
               <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-16 lg:mb-20">
-                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-primary font-semibold text-sm mb-4 sm:mb-6">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-primary font-semibold text-sm mb-4 sm:mb-6 text-nowrap">
                   <Film className="h-4 w-4" />
                   CONTENIDO MULTIMEDIA
                 </span>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 text-balance">
                   Videos <span className="text-primary">Destacados</span>
                 </h2>
-                <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed text-pretty">
                   Explora nuestra colección de videos sobre gestión de residuos,
                   sostenibilidad y mejores prácticas ambientales.
                 </p>
@@ -1238,17 +1423,17 @@ export default function Home() {
                       <p className="text-sm text-gray-600">{videos.length} videos en la biblioteca</p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 flex-wrap">
                     {videos.length > 0 && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-  variant="outline"
-  className="h-11 px-4 border-green-200 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-500"
->
-  <MoreVertical className="h-4 w-4 mr-2" />
-  Ordenar Videos
-</Button>
+                            variant="outline"
+                            className="h-11 px-4 border-green-200 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-500 text-nowrap"
+                          >
+                            <MoreVertical className="h-4 w-4 mr-2" />
+                            Ordenar Videos
+                          </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[240px] shadow-xl"
@@ -1263,15 +1448,15 @@ export default function Home() {
                               className="flex items-center justify-between gap-2 py-3 px-4 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
                               onSelect={(e) => e.preventDefault()}
                             >
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded flex-shrink-0">
                                   #{video.orden}
                                 </span>
-                                <span className="text-sm truncate max-w-[140px]">
+                                <span className="text-sm truncate text-pretty min-w-0">
                                   {video.titulo}
                                 </span>
                               </div>
-                              <div className="flex gap-1">
+                              <div className="flex gap-1 flex-shrink-0">
                                 {index > 0 && (
                                   <Button
                                     size="icon"
@@ -1308,7 +1493,7 @@ export default function Home() {
                     )}
                     <Button
                       onClick={handleCreateVideo}
-                      className="h-11 px-6 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all"
+                      className="h-11 px-6 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all text-nowrap"
                     >
                       <Plus className="h-5 w-5 mr-2" />
                       Agregar Video
@@ -1325,146 +1510,21 @@ export default function Home() {
                   ))}
                 </div>
               ) : videos.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-                    {videos.map((video) => {
-                      const videoType = detectVideoType(video.video_url)
-                      const isYouTube = videoType === 'youtube'
-                      const isVimeo = videoType === 'vimeo'
-
-                      return (
-                        <div
-                          key={video.id}
-                          className="group/card relative flex flex-col"
-                          onMouseEnter={() => setHoveredVideo(video.id)}
-                          onMouseLeave={() => setHoveredVideo(null)}
-                        >
-                          {/* TARJETA DE VIDEO - MODIFICADA */}
-                          <div className="relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 hover:border-primary/30 group-hover/card:-translate-y-2 h-full">
-
-                            {/* Thumbnail */}
-                            <div
-                              className="relative aspect-video overflow-hidden cursor-pointer bg-gradient-to-br from-gray-900 to-gray-800 flex-shrink-0"
-                              onClick={() => openVideoPreview(video)}
-                            >
-                              {renderVideoThumbnail(video)}
-
-                              {/* Badge de plataforma */}
-                              <div className="absolute top-4 left-4 z-10">
-                                <Badge
-                                  className={`px-3 py-1.5 font-semibold backdrop-blur-sm border-0 ${isYouTube ? 'bg-red-600/90 hover:bg-red-600' : isVimeo ? 'bg-blue-600/90 hover:bg-blue-600' : 'bg-gray-800/90 hover:bg-gray-800'}`}
-                                >
-                                  {isYouTube ? 'YouTube' : isVimeo ? 'Vimeo' : 'Video'}
-                                </Badge>
-                              </div>
-
-                              {/* Botón de play con animación */}
-                              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${hoveredVideo === video.id ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-                                <div className="relative">
-                                  <div className="absolute inset-0 animate-ping-slow rounded-full bg-white/30"></div>
-                                  <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/90 shadow-2xl flex items-center justify-center transform group-hover/card:scale-110 transition-transform duration-300">
-                                    <Play className="h-7 w-7 text-gray-900 ml-0.5" />
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Controles de administrador */}
-                              {isAdmin && (
-                                <div className="absolute top-4 right-4 z-10">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                      <Button
-                                        size="icon"
-                                        className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
-                                        aria-label="Opciones del video"
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                      className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[160px] shadow-xl"
-                                      align="end"
-                                    >
-                                      <DropdownMenuItem
-                                        className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50 text-sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleEditVideo(video)
-                                        }}
-                                      >
-                                        <Pencil className="h-4 w-4 mr-2 text-blue-600" />
-                                        <span>Editar video</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 text-sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          confirmDelete('video', video.id)
-                                        }}
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        <span>Eliminar video</span>
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              )}
-
-                              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent pointer-events-none"></div>
-                            </div>
-
-                            {/* Contenido de la tarjeta */}
-                            <div className="p-5 flex flex-col flex-grow">
-                              {/* Título */}
-                              <h3 className="font-bold text-lg text-gray-900 mb-3 leading-tight group-hover/card:text-primary transition-colors duration-300">
-                                {video.titulo}
-                              </h3>
-
-                              {/* Descripción - ESPACIO ADECUADO Y VISIBLE */}
-                              <div className="mb-5 flex-grow">
-                                <p className="text-sm text-gray-600 leading-relaxed line-clamp-7">
-                                  {video.descripcion}
-                                </p>
-                              </div>
-
-                              {/* Botones de acción */}
-                              <div className="flex gap-2 mt-auto">
-                                <Button
-                                  size="default"
-                                  className="flex-1 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-md hover:shadow-lg transition-all duration-300 group/play"
-                                  onClick={() => openVideoPreview(video)}
-                                >
-                                  <Play className="h-4 w-4 mr-2 group-hover/play:scale-110 transition-transform duration-200" />
-                                  Ver Video
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    window.open(video.video_url, "_blank")
-                                  }}
-                                  className="border-gray-300 hover:border-primary hover:bg-primary/5 hover:scale-110 transition-all duration-300"
-                                  title="Abrir en nueva pestaña"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                  <span className="sr-only">Abrir en nueva pestaña</span>
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Efecto de borde animado */}
-                            <div className="absolute inset-0 border-2 border-transparent rounded-2xl group-hover/card:border-primary/20 transition-all duration-500 pointer-events-none"></div>
-
-                            {/* Efecto de brillo en hover */}
-                            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/5 group-hover/card:via-primary/2 group-hover/card:to-primary/5 transition-all duration-500 pointer-events-none"></div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                  {videos.map((video, index) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      isAdmin={isAdmin}
+                      onEdit={handleEditVideo}
+                      onDelete={(id) => confirmDelete('video', id)}
+                      onPreview={openVideoPreview}
+                      onOrderChange={handleChangeVideoOrder}
+                      index={index}
+                      totalVideos={videos.length}
+                    />
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-16 sm:py-20">
                   <div className="max-w-md mx-auto">
@@ -1474,8 +1534,8 @@ export default function Home() {
                       </div>
                       <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full border-2 border-primary/10 animate-pulse-slow"></div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3">No hay videos disponibles</h3>
-                    <p className="text-gray-600 mb-8 max-w-sm mx-auto">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3 text-balance">No hay videos disponibles</h3>
+                    <p className="text-gray-600 mb-8 max-w-sm mx-auto text-pretty">
                       Aún no se han agregado videos a la biblioteca. Agrega el primero para comenzar.
                     </p>
                     {isAdmin && (
@@ -1496,21 +1556,21 @@ export default function Home() {
         ) : null}
 
         {/* Sección Informativa */}
-        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background overflow-x-hidden">
+        <section className="py-8 sm:py-12 md:py-16 lg:py-24 bg-background">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <span className="inline-block px-3 py-1 rounded-full bg-primary-lighter text-primary font-medium text-xs mb-4 sm:mb-6">
               SOBRE ESTE PROYECTO
             </span>
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-6 sm:mb-8 lg:mb-12">
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-6 sm:mb-8 lg:mb-12 text-balance">
               Compromiso ecológico
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
               <div className="card-elevated p-4 sm:p-6 lg:p-8">
-                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground mb-2 sm:mb-3 lg:mb-4">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground mb-2 sm:mb-3 lg:mb-4 text-balance">
                   Nuestra Visión
                 </h3>
-                <p className="text-xs sm:text-sm lg:text-base text-foreground/70 leading-relaxed">
+                <p className="text-xs sm:text-sm lg:text-base text-foreground/70 leading-relaxed text-pretty hyphens-auto">
                   Promovemos la sostenibilidad y el manejo responsable de
                   desechos. Este sitio web muestra nuestro trabajo por
                   transparencia, participación comunitaria y mejora continua en
@@ -1519,10 +1579,10 @@ export default function Home() {
               </div>
 
               <div className="card-elevated p-4 sm:p-6 lg:p-8">
-                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground mb-2 sm:mb-3 lg:mb-4">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground mb-2 sm:mb-3 lg:mb-4 text-balance">
                   Economía Circular Aplicada
                 </h3>
-                <p className="text-xs sm:text-sm lg:text-base text-foreground/70 leading-relaxed">
+                <p className="text-xs sm:text-sm lg:text-base text-foreground/70 leading-relaxed text-pretty hyphens-auto">
                   Implementamos principios circulares que transforman
                   externalidades negativas en capital ecológico y comunitario.
                   Nuestro enfoque integra análisis de ciclo de vida, diseño
@@ -1546,9 +1606,9 @@ export default function Home() {
           {selectedVideo && (
             <div className="relative">
               <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-black/90 to-transparent">
-                <div className="max-w-[80%]">
-                  <h3 className="text-white font-bold text-lg sm:text-xl truncate">{selectedVideo.titulo}</h3>
-                  <p className="text-white/70 text-sm truncate">{selectedVideo.descripcion}</p>
+                <div className="max-w-[80%] min-w-0">
+                  <h3 className="text-white font-bold text-lg sm:text-xl truncate text-balance">{selectedVideo.titulo}</h3>
+                  <p className="text-white/70 text-sm truncate text-pretty">{selectedVideo.descripcion}</p>
                 </div>
                 <Button
                   size="icon"
@@ -1596,7 +1656,7 @@ export default function Home() {
 
               {detectVideoType(selectedVideo.video_url) === 'direct' && (
                 <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent">
-                  <div className="flex items-center justify-center gap-3 sm:gap-4">
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -1638,14 +1698,14 @@ export default function Home() {
 
               <div className="p-4 sm:p-6 bg-gray-900">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                  <div className="flex-1">
-                    <p className="text-white/70 text-sm line-clamp-2">{selectedVideo.descripcion}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white/70 text-sm line-clamp-2 text-pretty">{selectedVideo.descripcion}</p>
                   </div>
                   <Button
                     variant="default"
                     size="sm"
                     onClick={() => window.open(selectedVideo.video_url, "_blank")}
-                    className="bg-primary hover:bg-primary/90 text-white border-0 whitespace-nowrap h-9 sm:h-10 px-3 sm:px-4 text-sm mt-2 sm:mt-0 hover:scale-105 transition-all duration-200"
+                    className="bg-primary hover:bg-primary/90 text-white border-0 whitespace-nowrap h-9 sm:h-10 px-3 sm:px-4 text-sm mt-2 sm:mt-0 hover:scale-105 transition-all duration-200 flex-shrink-0"
                   >
                     <ExternalLink className="h-4 w-4 mr-1.5 sm:mr-2" />
                     Abrir original
@@ -1712,11 +1772,11 @@ export default function Home() {
                   }
                   className="flex-1"
                 />
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 whitespace-nowrap">
                   Actual: {heroImages.length} imágenes
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 text-pretty">
                 Número más bajo aparece primero. Usa flechas en el menú de gestión para reordenar.
               </p>
             </div>
@@ -1732,7 +1792,7 @@ export default function Home() {
                     sizes="(max-width: 400px) 100vw"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-1 text-pretty">
                   Dimensiones recomendadas: 16:9 para móvil, 16:10 para tablet, 16:9 para desktop
                 </p>
               </div>
@@ -1783,9 +1843,12 @@ export default function Home() {
                   })
                 }
                 placeholder="Descripción del video"
-                rows={3}
-                className="w-full resize-none break-words min-h-[80px]"
+                rows={5}
+                className="w-full resize-y break-words min-h-[120px] max-h-[300px] text-pretty"
               />
+              <p className="text-xs text-gray-500 mt-1 text-pretty">
+                La descripción completa será visible en las tarjetas con scroll suave
+              </p>
             </div>
             <div>
               <Label htmlFor="video_url">URL del Video *</Label>
@@ -1801,7 +1864,7 @@ export default function Home() {
                 placeholder="https://youtube.com/watch?v=..."
                 className="w-full break-words"
               />
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 text-pretty">
                 Soporta YouTube, Vimeo y enlaces directos a videos
               </p>
             </div>
@@ -1821,18 +1884,18 @@ export default function Home() {
                   }
                   className="flex-1"
                 />
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 whitespace-nowrap">
                   Actual: {videos.length} videos
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 mt-1 text-pretty">
                 Número más bajo aparece primero. Usa flechas en el botón "Ordenar" para reordenar.
               </p>
             </div>
             {videoFormData.video_url && (
               <div className="mt-4">
                 <Label>Vista Previa del Enlace</Label>
-                <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted rounded break-words">
+                <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted rounded break-words text-pretty">
                   {detectVideoType(videoFormData.video_url) === 'youtube' && (
                     <span className="flex items-center gap-1">
                       <span className="text-red-500 font-medium">YouTube</span> detectado
@@ -1867,7 +1930,7 @@ export default function Home() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-pretty">
               Esta acción no se puede deshacer. {itemToDelete?.type === 'image'
                 ? 'La imagen será eliminada permanentemente.'
                 : 'El video será eliminado permanentemente.'}
@@ -2006,6 +2069,26 @@ export default function Home() {
           }
         }
 
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slide-up {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
         .animate-leaf-float {
           animation: leaf-float linear infinite;
         }
@@ -2059,6 +2142,14 @@ export default function Home() {
 
         .animate-pulse-slow {
           animation: pulse-slow 3s ease-in-out infinite;
+        }
+
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out forwards;
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out forwards;
         }
 
         .gradient-eco {
@@ -2135,19 +2226,63 @@ export default function Home() {
           -webkit-line-clamp: 2;
         }
 
-        .line-clamp-4 {
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 4;
-        }
-
         .leading-snug {
           line-height: 1.375;
         }
 
         .leading-relaxed {
           line-height: 1.625;
+        }
+
+        /* Utilidades de texto modernas */
+        .text-balance {
+          text-wrap: balance;
+        }
+
+        .text-pretty {
+          text-wrap: pretty;
+        }
+
+        .text-nowrap {
+          text-wrap: nowrap;
+        }
+
+        .hyphens-auto {
+          hyphens: auto;
+        }
+
+        /* Scrollbar personalizado para las descripciones */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.5);
+          border-radius: 3px;
+          border: 2px solid transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(156, 163, 175, 0.7);
+        }
+
+        /* Utilidades de flexbox para evitar desbordamiento */
+        .min-w-0 {
+          min-width: 0;
+        }
+
+        .flex-shrink-0 {
+          flex-shrink: 0;
         }
       `}</style>
     </div>
