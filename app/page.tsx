@@ -1423,7 +1423,7 @@ export default function Home() {
 
                               {/* Descripción - ESPACIO ADECUADO Y VISIBLE */}
                               <div className="mb-5 flex-grow">
-                                <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">
+                                <p className="text-sm text-gray-600 leading-relaxed line-clamp-7">
                                   {video.descripcion}
                                 </p>
                               </div>
