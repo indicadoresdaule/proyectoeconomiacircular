@@ -116,13 +116,13 @@ interface VideoCardProps {
 }
 
 // Componente de tarjeta de video reutilizable y mejorado
-const VideoCard = ({ 
-  video, 
-  isAdmin, 
-  onEdit, 
-  onDelete, 
-  onPreview, 
-  onOrderChange, 
+const VideoCard = ({
+  video,
+  isAdmin,
+  onEdit,
+  onDelete,
+  onPreview,
+  onOrderChange,
   index,
   totalVideos
 }: VideoCardProps) => {
@@ -130,8 +130,8 @@ const VideoCard = ({
   const [isExpanded, setIsExpanded] = useState(false)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const descRef = useRef<HTMLParagraphElement>(null)
-  
-  const videoType = video.tipo || (video.video_url.includes('youtube') ? 'youtube' : 
+
+  const videoType = video.tipo || (video.video_url.includes('youtube') ? 'youtube' :
     video.video_url.includes('vimeo') ? 'vimeo' : 'direct')
   const isYouTube = videoType === 'youtube'
   const isVimeo = videoType === 'vimeo'
@@ -320,10 +320,10 @@ const VideoCard = ({
         <div className="p-5 flex flex-col flex-grow">
           {/* Encabezado con título */}
           <div className="mb-3">
-            <h3 
+            <h3
               ref={titleRef}
               className={cn(
-                "font-bold text-gray-900 leading-tight transition-colors duration-300 text-balance",
+                "font-bold text-gray-900 leading-tight transition-colors duration-300 text-justify pr-1",
                 !isExpanded ? "line-clamp-2" : ""
               )}
             >
@@ -336,13 +336,13 @@ const VideoCard = ({
             "mb-4 flex-grow overflow-hidden transition-all duration-300",
             isExpanded ? "max-h-none" : "max-h-[100px]"
           )}>
-            <p 
+            <p
               ref={descRef}
-              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-2 text-pretty break-words hyphens-auto"
+              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-1 text-pretty break-words hyphens-auto"
             >
               {video.descripcion}
             </p>
-            
+
             {/* Indicador de que hay más contenido (solo cuando no está expandido) */}
             {!isExpanded && (
               <div className="absolute bottom-16 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent h-6 pointer-events-none" />
@@ -350,27 +350,34 @@ const VideoCard = ({
           </div>
 
           {/* Botón único para expandir/contraer */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full mb-4 text-gray-500 hover:text-primary hover:bg-primary/10"
-            onClick={(e) => {
-              e.stopPropagation()
-              handleToggleExpand()
-            }}
-          >
-            {isExpanded ? (
-              <>
-                <ChevronUp className="h-4 w-4 mr-2" />
-                Mostrar menos
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-4 w-4 mr-2" />
-                Mostrar más
-              </>
-            )}
-          </Button>
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50 text-gray-600 hover:text-primary border border-gray-300 hover:border-primary/50 rounded-full px-4 py-1.5 shadow-sm hover:shadow transition-all duration-300 group/expand"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleToggleExpand()
+                }}
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-2 group-hover/expand:-translate-y-0.5 transition-transform duration-300" />
+                    Contraer
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-2 group-hover/expand:translate-y-0.5 transition-transform duration-300" />
+                    Ver más
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
 
           {/* Botones de acción */}
           <div className="flex gap-2 mt-auto">
@@ -838,7 +845,7 @@ export default function Home() {
       }
 
       setVideos(videos.filter((v) => v.id !== videoId))
-      
+
       toast({
         title: "Video eliminado",
         description: "El video se eliminó correctamente.",
@@ -1510,19 +1517,26 @@ export default function Home() {
                   ))}
                 </div>
               ) : videos.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                <div className="flex flex-wrap justify-left gap-6 sm:gap-8">
                   {videos.map((video, index) => (
-                    <VideoCard
+                    <div
                       key={video.id}
-                      video={video}
-                      isAdmin={isAdmin}
-                      onEdit={handleEditVideo}
-                      onDelete={(id) => confirmDelete('video', id)}
-                      onPreview={openVideoPreview}
-                      onOrderChange={handleChangeVideoOrder}
-                      index={index}
-                      totalVideos={videos.length}
-                    />
+                      className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]"
+                      style={{
+                        height: 'fit-content' // Esto permite que cada tarjeta tenga su propia altura
+                      }}
+                    >
+                      <VideoCard
+                        video={video}
+                        isAdmin={isAdmin}
+                        onEdit={handleEditVideo}
+                        onDelete={(id) => confirmDelete('video', id)}
+                        onPreview={openVideoPreview}
+                        onOrderChange={handleChangeVideoOrder}
+                        index={index}
+                        totalVideos={videos.length}
+                      />
+                    </div>
                   ))}
                 </div>
               ) : (
