@@ -1523,7 +1523,7 @@ export default function Home() {
 
           {selectedVideo && (
             <div className="relative">
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-black/90 to-transparent">
+              {/* <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-black/90 to-transparent">
                 <div className="max-w-[80%] min-w-0">
                   <h3 className="text-white font-bold text-lg sm:text-xl truncate text-balance">{selectedVideo.titulo}</h3>
                   <p className="text-white/70 text-sm truncate text-pretty">{selectedVideo.descripcion}</p>
@@ -1537,7 +1537,7 @@ export default function Home() {
                 >
                   <X className="h-5 w-5" />
                 </Button>
-              </div>
+              </div> */}
 
               <div className="relative aspect-video bg-black">
                 {detectVideoType(selectedVideo.video_url) === 'youtube' ? (
@@ -1614,22 +1614,18 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="p-4 sm:p-6 bg-gray-900">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/70 text-sm line-clamp-2 text-pretty">{selectedVideo.descripcion}</p>
-                  </div>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => window.open(selectedVideo.video_url, "_blank")}
-                    className="bg-primary hover:bg-primary/90 text-white border-0 whitespace-nowrap h-9 sm:h-10 px-3 sm:px-4 text-sm mt-2 sm:mt-0 hover:scale-105 transition-all duration-200 flex-shrink-0"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1.5 sm:mr-2" />
-                    Abrir original
-                  </Button>
-                </div>
-              </div>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => window.open(selectedVideo.video_url, "_blank")}
+                className="ml-auto bg-primary hover:bg-primary/90 text-white border-0 whitespace-nowrap h-9 sm:h-10 px-3 sm:px-4 text-sm mt-2 sm:mt-0 hover:scale-105 transition-all duration-200 flex-shrink-0"
+              >
+                <ExternalLink className="h-4 w-4 mr-1.5 sm:mr-2" />
+                Abrir original
+              </Button>
+
+
             </div>
           )}
         </DialogContent>
