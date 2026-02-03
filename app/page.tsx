@@ -324,13 +324,11 @@ const VideoCard = ({
               ref={titleRef}
               className={cn(
                 "font-bold text-gray-900 leading-tight transition-colors duration-300 text-justify pr-1",
-                // Eliminamos line-clamp-2 para mostrar todo el título
                 "break-words hyphens-auto"
               )}
               style={{
-                textAlignLast: "justify", // Para mejor justificación
-                wordBreak: "break-word", // Para palabras largas
-                overflowWrap: "break-word", // Para romper palabras largas
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
               }}
             >
               {video.titulo}
