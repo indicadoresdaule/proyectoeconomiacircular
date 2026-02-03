@@ -115,7 +115,6 @@ interface VideoCardProps {
   totalVideos: number
 }
 
-// Componente de tarjeta de video reutilizable y mejorado
 const VideoCard = ({
   video,
   isAdmin,
@@ -136,16 +135,6 @@ const VideoCard = ({
   const isYouTube = videoType === 'youtube'
   const isVimeo = videoType === 'vimeo'
 
-  // Detectar si el título o descripción necesitan expansión
-  useEffect(() => {
-    if (titleRef.current) {
-      const isOverflowing = titleRef.current.scrollHeight > titleRef.current.clientHeight
-    }
-    if (descRef.current) {
-      const isOverflowing = descRef.current.scrollHeight > descRef.current.clientHeight
-    }
-  }, [video.titulo, video.descripcion])
-
   // Función para extraer ID de YouTube
   const getYouTubeId = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
@@ -160,7 +149,6 @@ const VideoCard = ({
     return match ? match[1] : null
   }
 
-  // Renderizar thumbnail
   const renderVideoThumbnail = () => {
     if (isYouTube) {
       const videoId = getYouTubeId(video.video_url)
@@ -178,7 +166,6 @@ const VideoCard = ({
               }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
           </div>
         )
       }
@@ -194,18 +181,14 @@ const VideoCard = ({
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/20 group-hover/card:via-primary/10 group-hover/card:to-primary/20 transition-all duration-500" />
           </div>
         )
       }
     }
 
     return (
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center overflow-hidden">
-        <div className="relative z-10">
-          <Play className="size-20 text-white/80 drop-shadow-2xl" />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-accent/20 animate-pulse-slow" />
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <Play className="size-20 text-white/80 drop-shadow-2xl" />
       </div>
     )
   }
@@ -216,14 +199,11 @@ const VideoCard = ({
 
   return (
     <div
-      className={cn(
-        "group/card relative flex flex-col transition-all duration-500",
-        isExpanded ? "row-span-2" : ""
-      )}
+      className="group/card relative flex flex-col transition-all duration-500"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      style={{ height: 'fit-content' }} // Importante para que no estire a las demás
     >
-      {/* Tarjeta principal */}
       <div className={cn(
         "relative flex flex-col bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-200 group-hover/card:-translate-y-2 h-full"
       )}>
@@ -234,132 +214,70 @@ const VideoCard = ({
         >
           {renderVideoThumbnail()}
 
-          {/* Badge de plataforma */}
           <div className="absolute top-4 left-4 z-10">
-            <Badge
-              className={`px-3 py-1.5 font-semibold backdrop-blur-sm border-0 ${isYouTube ? 'bg-red-600/90 hover:bg-red-600' : isVimeo ? 'bg-blue-600/90 hover:bg-blue-600' : 'bg-gray-800/90 hover:bg-gray-800'}`}
-            >
+            <Badge className={`px-3 py-1.5 font-semibold backdrop-blur-sm border-0 ${isYouTube ? 'bg-red-600/90' : isVimeo ? 'bg-blue-600/90' : 'bg-gray-800/90'}`}>
               {isYouTube ? 'YouTube' : isVimeo ? 'Vimeo' : 'Video'}
             </Badge>
           </div>
 
-          {/* Controles de administrador */}
+          {/* Botones Editar/Eliminar */}
           {isAdmin && (
             <div className="absolute top-4 right-4 z-10 flex gap-2">
               <Button
                 size="icon"
-                className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit(video)
-                }}
-                title="Editar video"
+                className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg"
+                onClick={(e) => { e.stopPropagation(); onEdit(video); }}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
               <Button
                 size="icon"
-                className="h-9 w-9 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(video.id)
-                }}
-                title="Eliminar video"
+                className="h-9 w-9 bg-white/90 hover:bg-white text-red-600 shadow-lg"
+                onClick={(e) => { e.stopPropagation(); onDelete(video.id); }}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           )}
 
-          {/* Botón de play con animación */}
+          {/* Play Icon Hover */}
           <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${hovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <div className="relative">
-              <div className="absolute inset-0 animate-ping-slow rounded-full bg-white/30"></div>
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-white to-white/90 shadow-2xl flex items-center justify-center transform group-hover/card:scale-110 transition-transform duration-300">
-                <Play className="h-7 w-7 text-gray-900 ml-0.5" />
-              </div>
+            <div className="w-16 h-16 rounded-full bg-white shadow-2xl flex items-center justify-center">
+              <Play className="h-7 w-7 text-gray-900 ml-0.5" />
             </div>
           </div>
-
-          {/* Controles de orden para admin */}
-          {isAdmin && (
-            <div className="absolute bottom-4 right-4 z-10 flex gap-1">
-              {index > 0 && (
-                <Button
-                  size="icon"
-                  className="h-7 w-7 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onOrderChange(video.id, 'up')
-                  }}
-                  title="Mover hacia arriba"
-                >
-                  <ArrowUp className="h-3 w-3" />
-                </Button>
-              )}
-              {index < totalVideos - 1 && (
-                <Button
-                  size="icon"
-                  className="h-7 w-7 bg-white/90 hover:bg-white text-gray-900 shadow-lg backdrop-blur-sm hover:scale-110 transition-transform duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onOrderChange(video.id, 'down')
-                  }}
-                  title="Mover hacia abajo"
-                >
-                  <ArrowDown className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent pointer-events-none"></div>
         </div>
 
-        {/* Contenido de la tarjeta - MEJORADO */}
+        {/* Contenido */}
         <div className="p-5 flex flex-col flex-grow">
-          {/* Encabezado con título */}
           <div className="mb-3">
             <h3
               ref={titleRef}
-              className={cn(
-                "font-bold text-gray-900 leading-tight transition-colors duration-300 text-justify pr-1",
-                "break-words hyphens-auto"
-              )}
-              style={{
-                wordBreak: "break-word",
-                overflowWrap: "break-word",
-              }}
+              className="font-bold text-gray-900 leading-tight text-justify break-words hyphens-auto pr-1"
+              style={{ wordBreak: "break-word" }}
             >
               {video.titulo}
             </h3>
           </div>
 
-          {/* Descripción */}
+          {/* Descripción con Animación Suave */}
           <div className={cn(
-            "mb-4 flex-grow overflow-hidden transition-all duration-300",
-            isExpanded ? "max-h-none" : "max-h-[100px]"
+            "mb-4 flex-grow overflow-hidden transition-all duration-500 ease-in-out relative",
+            isExpanded ? "max-h-[1000px]" : "max-h-[100px]"
           )}>
             <p
               ref={descRef}
-              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-1 break-words hyphens-auto"
-              style={{
-                textAlign: "justify",
-                textAlignLast: "justify",
-                wordBreak: "break-word",
-                overflowWrap: "break-word",
-              }}
+              className="text-sm text-gray-600 leading-relaxed text-justify break-words hyphens-auto pr-1"
             >
               {video.descripcion}
             </p>
 
-            {/* Indicador de que hay más contenido (solo cuando no está expandido) */}
             {!isExpanded && (
-              <div className="absolute bottom-16 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent h-6 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent h-12 pointer-events-none" />
             )}
           </div>
 
-          {/* Botón único para expandir/contraer */}
+          {/* Botón Ver más/menos */}
           <div className="relative mb-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
@@ -368,60 +286,36 @@ const VideoCard = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="bg-white hover:bg-gray-50 text-gray-600 hover:text-primary border border-gray-300 hover:border-primary/50 rounded-full px-4 py-1.5 shadow-sm hover:shadow transition-all duration-300 group/expand"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleExpand()
-                }}
+                className="bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200 rounded-full px-4"
+                onClick={(e) => { e.stopPropagation(); handleToggleExpand(); }}
               >
-                {isExpanded ? (
-                  <>
-                    <ChevronUp className="h-4 w-4 mr-2 group-hover/expand:-translate-y-0.5 transition-transform duration-300" />
-                    Contraer
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2 group-hover/expand:translate-y-0.5 transition-transform duration-300" />
-                    Ver más
-                  </>
-                )}
+                {isExpanded ? <><ChevronUp className="h-4 w-4 mr-2" />Contraer</> : <><ChevronDown className="h-4 w-4 mr-2" />Ver más</>}
               </Button>
             </div>
           </div>
 
-          {/* Botones de acción */}
+          {/* Botones de acción final */}
           <div className="flex gap-2 mt-auto">
             <Button
-              size="default"
-              className="flex-1 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-md hover:shadow-lg transition-all duration-300 group/play text-nowrap"
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white"
               onClick={() => onPreview(video)}
             >
-              <Play className="h-4 w-4 mr-2 group-hover/play:scale-110 transition-transform duration-200" />
-              Ver Video
+              <Play className="h-4 w-4 mr-2" /> Ver Video
             </Button>
             <Button
               size="icon"
               variant="outline"
-              onClick={(e) => {
-                e.stopPropagation()
-                window.open(video.video_url, "_blank")
-              }}
-              className="border-gray-300 hover:border-primary hover:bg-primary/5 hover:scale-110 transition-all duration-300 flex-shrink-0"
-              title="Abrir en nueva pestaña"
+              onClick={(e) => { e.stopPropagation(); window.open(video.video_url, "_blank"); }}
+              className="border-gray-300 hover:border-emerald-500"
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
           </div>
         </div>
-
-        {/* Efectos visuales */}
-        <div className="absolute inset-0 border-2 border-transparent rounded-2xl group-hover/card:border-primary/20 transition-all duration-500 pointer-events-none"></div>
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/0 via-primary/0 to-primary/0 group-hover/card:from-primary/5 group-hover/card:via-primary/2 group-hover/card:to-primary/5 transition-all duration-500 pointer-events-none"></div>
       </div>
     </div>
   )
 }
-
 export default function Home() {
   const { user } = useUser()
   const [isAdmin, setIsAdmin] = useState(false)
