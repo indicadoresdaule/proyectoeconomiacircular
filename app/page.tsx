@@ -324,8 +324,14 @@ const VideoCard = ({
               ref={titleRef}
               className={cn(
                 "font-bold text-gray-900 leading-tight transition-colors duration-300 text-justify pr-1",
-                !isExpanded ? "line-clamp-2" : ""
+                // Eliminamos line-clamp-2 para mostrar todo el título
+                "break-words hyphens-auto"
               )}
+              style={{
+                textAlignLast: "justify", // Para mejor justificación
+                wordBreak: "break-word", // Para palabras largas
+                overflowWrap: "break-word", // Para romper palabras largas
+              }}
             >
               {video.titulo}
             </h3>
@@ -338,7 +344,13 @@ const VideoCard = ({
           )}>
             <p
               ref={descRef}
-              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-1 text-pretty break-words hyphens-auto"
+              className="text-sm text-gray-600 leading-relaxed custom-scrollbar pr-1 break-words hyphens-auto"
+              style={{
+                textAlign: "justify",
+                textAlignLast: "justify",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+              }}
             >
               {video.descripcion}
             </p>
