@@ -23,9 +23,12 @@ export function useInactivityTimeout({
   const [showWarning, setShowWarning] = useState(false)
   const [remainingTime, setRemainingTime] = useState(warningMinutes * 60)
   const countdownRef = useRef<NodeJS.Timeout | null>(null)
+  const visibilityCheckRef = useRef<NodeJS.Timeout | null>(null)
+  const tabHiddenTimeRef = useRef<number | null>(null)
 
   const timeoutMs = timeoutMinutes * 60 * 1000
   const warningMs = (timeoutMinutes - warningMinutes) * 60 * 1000
+  const tabCloseTimeoutMs = 5 * 60 * 1000 // 5 minutos para cerrar si la pestaña está oculta
 
   const logout = useCallback(async () => {
     try {
@@ -49,6 +52,9 @@ export function useInactivityTimeout({
     if (countdownRef.current) {
       clearInterval(countdownRef.current)
     }
+
+    // Resetear tiempo de pestaña oculta
+    tabHiddenTimeRef.current = null
 
     // Ocultar advertencia si estaba visible
     setShowWarning(false)
@@ -87,6 +93,43 @@ export function useInactivityTimeout({
   }, [resetTimers])
 
   useEffect(() => {
+    // Manejo de visibilidad de pestaña
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Pestaña se ocultó - guardar tiempo
+        tabHiddenTimeRef.current = Date.now()
+
+        // Si la pestaña permanece oculta por 5 minutos, cerrar sesión
+        visibilityCheckRef.current = setTimeout(() => {
+          if (document.hidden) {
+            console.log("[v0] Tab has been hidden for 5 minutes, closing session")
+            logout()
+          }
+        }, tabCloseTimeoutMs)
+      } else {
+        // Pestaña se mostró nuevamente
+        if (visibilityCheckRef.current) {
+          clearTimeout(visibilityCheckRef.current)
+        }
+
+        // Si la pestaña estuvo oculta, verificar si la sesión debe cerrarse
+        if (tabHiddenTimeRef.current) {
+          const hiddenDuration = Date.now() - tabHiddenTimeRef.current
+          if (hiddenDuration >= tabCloseTimeoutMs) {
+            console.log("[v0] Tab was hidden for more than 5 minutes, closing session")
+            logout()
+          } else {
+            // Si estuvo oculta pero menos de 5 minutos, resetear timers
+            resetTimers()
+          }
+        }
+
+        tabHiddenTimeRef.current = null
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
     // Eventos que indican actividad del usuario
     const activityEvents = [
       "mousedown",
@@ -118,6 +161,7 @@ export function useInactivityTimeout({
       activityEvents.forEach((event) => {
         document.removeEventListener(event, handleActivity)
       })
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
@@ -127,8 +171,11 @@ export function useInactivityTimeout({
       if (countdownRef.current) {
         clearInterval(countdownRef.current)
       }
+      if (visibilityCheckRef.current) {
+        clearTimeout(visibilityCheckRef.current)
+      }
     }
-  }, [resetTimers, showWarning])
+  }, [resetTimers, showWarning, logout])
 
   return {
     showWarning,
