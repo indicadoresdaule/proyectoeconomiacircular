@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Clock, LogOut } from "lucide-react"
+import { Clock, LogOut, AlertTriangle } from "lucide-react"
 
 interface InactivityWarningDialogProps {
   open: boolean
@@ -35,40 +35,104 @@ export function InactivityWarningDialog({
     return `${seconds} segundos`
   }
 
+  // Determinar color basado en tiempo restante
+  const getWarningLevel = () => {
+    const totalSeconds = remainingTime
+    if (totalSeconds <= 30) return "red"
+    if (totalSeconds <= 90) return "amber"
+    return "blue"
+  }
+
+  const warningLevel = getWarningLevel()
+  const colorMap = {
+    red: {
+      bg: "bg-red-50",
+      border: "border-red-200",
+      text: "text-red-700",
+      title: "text-red-600",
+      number: "text-red-800",
+      icon: "text-red-600",
+    },
+    amber: {
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      text: "text-amber-700",
+      title: "text-amber-600",
+      number: "text-amber-800",
+      icon: "text-amber-600",
+    },
+    blue: {
+      bg: "bg-blue-50",
+      border: "border-blue-200",
+      text: "text-blue-700",
+      title: "text-blue-600",
+      number: "text-blue-800",
+      icon: "text-blue-600",
+    },
+  }
+
+  const colors = colorMap[warningLevel]
+
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-md">
+      <AlertDialogContent className="max-w-md border-2" role="alertdialog" aria-labelledby="inactivity-title">
         <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
-            <Clock className="h-5 w-5" />
-            Sesion por expirar
+          <AlertDialogTitle className={`flex items-center gap-2 ${colors.title}`} id="inactivity-title">
+            {warningLevel === "red" ? (
+              <AlertTriangle className={`h-6 w-6 ${colors.icon}`} />
+            ) : (
+              <Clock className={`h-5 w-5 ${colors.icon}`} />
+            )}
+            {warningLevel === "red" ? "¡Sesión a cerrarse!" : "Sesión por expirar"}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3">
-            <p>
-              Tu sesion esta a punto de cerrarse por inactividad.
-            </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-              <p className="text-sm text-amber-700 mb-1">Tiempo restante:</p>
-              <p className="text-2xl font-bold text-amber-800">{formatTime()}</p>
+          <AlertDialogDescription className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <p className="font-medium text-foreground">
+                Por tu seguridad, tu sesión se cerrará automáticamente por inactividad.
+              </p>
+              <p className="text-sm">
+                {warningLevel === "red"
+                  ? "¡Rápido! Tu sesión se cierra en unos momentos."
+                  : "No hemos detectado actividad en los últimos minutos."}
+              </p>
             </div>
-            <p className="text-sm">
-              Haz clic en &quot;Continuar sesion&quot; para mantener tu sesion activa, o en &quot;Cerrar sesion&quot; si deseas salir.
+
+            <div className={`${colors.bg} border ${colors.border} rounded-lg p-4 text-center`}>
+              <p className={`text-sm ${colors.text} mb-2 font-medium`}>Tiempo restante:</p>
+              <p className={`text-4xl font-bold ${colors.number} font-mono tracking-wider`}>
+                {formatTime()}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs text-gray-600 leading-relaxed">
+                <strong>Nota:</strong> Si cierras esta pestaña y no vuelves en 5 minutos, tu sesión se cerrará automáticamente.
+              </p>
+            </div>
+
+            <p className="text-sm text-foreground">
+              Haz clic en &quot;<strong>Continuar sesión</strong>&quot; para seguir trabajando.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2">
           <AlertDialogCancel 
             onClick={onLogout}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2"
           >
             <LogOut className="h-4 w-4" />
-            Cerrar sesion
+            Cerrar sesión
           </AlertDialogCancel>
           <AlertDialogAction 
             onClick={onExtend}
-            className="bg-primary hover:bg-primary/90"
+            className={`${
+              warningLevel === "red"
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-primary hover:bg-primary/90"
+            } flex items-center justify-center gap-2`}
           >
-            Continuar sesion
+            <Clock className="h-4 w-4" />
+            Continuar sesión
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
