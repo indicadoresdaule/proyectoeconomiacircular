@@ -12,8 +12,8 @@ interface UseInactivityTimeoutOptions {
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 2,
-  warningMinutes = 1,
+  timeoutMinutes = 0.06,
+  warningMinutes = 0.03,
   onWarning,
   onTimeout,
 }: UseInactivityTimeoutOptions = {}) {
