@@ -49,8 +49,8 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
   }, [])
 
   const { showWarning, remainingTime, extendSession, logout } = useInactivityTimeout({
-    timeoutMinutes: 30,
-    warningMinutes: 5,
+    timeoutMinutes: 1,
+    warningMinutes: 0.3,
   })
 
   // No mostrar nada durante la carga inicial
