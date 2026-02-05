@@ -27,23 +27,59 @@ export function useInactivityTimeout({
   const tabHiddenTimeRef = useRef<number | null>(null)
   const sessionStartTimeRef = useRef<number>(Date.now())
   const warningActiveRef = useRef<boolean>(false)
+  const isLoggingOutRef = useRef<boolean>(false)
 
   const timeoutMs = timeoutMinutes * 60 * 1000
   const warningTriggerMs = (timeoutMinutes - warningMinutes) * 60 * 1000
   const tabCloseTimeoutMs = 5 * 60 * 1000 // 5 minutos para cerrar si la pestaña está oculta
 
   const logout = useCallback(async () => {
+    // Prevenir múltiples llamadas simultáneas
+    if (isLoggingOutRef.current) return
+    
+    isLoggingOutRef.current = true
+    
     try {
+      console.log("[v0] Cerrando sesión por inactividad")
       const supabase = createClient()
       await supabase.auth.signOut()
+      
+      // Limpiar todos los timers
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+      if (warningTimeoutRef.current) {
+        clearTimeout(warningTimeoutRef.current)
+        warningTimeoutRef.current = null
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current)
+        countdownRef.current = null
+      }
+      
+      // Resetear todos los estados
+      warningActiveRef.current = false
+      setShowWarning(false)
+      setRemainingTime(warningMinutes * 60)
+      
+      // Redirigir a login con parámetro de razón
       router.push("/login?reason=inactivity")
     } catch (error) {
       console.error("Error al cerrar sesión:", error)
       router.push("/login?reason=inactivity")
+    } finally {
+      // Permitir futuros cierres de sesión después de un breve delay
+      setTimeout(() => {
+        isLoggingOutRef.current = false
+      }, 1000)
     }
-  }, [router])
+  }, [router, warningMinutes])
 
   const resetTimers = useCallback(() => {
+    // No resetear si estamos en proceso de logout
+    if (isLoggingOutRef.current) return
+    
     // Solo resetear si no hay advertencia activa
     if (warningActiveRef.current) {
       return
@@ -52,12 +88,15 @@ export function useInactivityTimeout({
     // Limpiar timers existentes
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
     if (warningTimeoutRef.current) {
       clearTimeout(warningTimeoutRef.current)
+      warningTimeoutRef.current = null
     }
     if (countdownRef.current) {
       clearInterval(countdownRef.current)
+      countdownRef.current = null
     }
 
     // Resetear tiempo de pestaña oculta
@@ -68,6 +107,8 @@ export function useInactivityTimeout({
     // Ocultar advertencia si estaba visible
     setShowWarning(false)
     setRemainingTime(warningMinutes * 60)
+
+    console.log("[v0] Timers reiniciados")
 
     // Configurar timer de advertencia
     warningTimeoutRef.current = setTimeout(() => {
@@ -82,6 +123,7 @@ export function useInactivityTimeout({
           if (prev <= 1) {
             if (countdownRef.current) {
               clearInterval(countdownRef.current)
+              countdownRef.current = null
             }
             warningActiveRef.current = false
             return 0
@@ -105,7 +147,7 @@ export function useInactivityTimeout({
       
     }, warningTriggerMs)
 
-    // Configurar timer de cierre de sesión
+    // Configurar timer de cierre de sesión principal
     timeoutRef.current = setTimeout(() => {
       warningActiveRef.current = false
       onTimeout?.()
@@ -114,20 +156,27 @@ export function useInactivityTimeout({
   }, [timeoutMs, warningTriggerMs, warningMinutes, logout, onWarning, onTimeout])
 
   const extendSession = useCallback(() => {
+    if (isLoggingOutRef.current) return
+    
     warningActiveRef.current = false
     setShowWarning(false)
+    
+    console.log("[v0] Sesión extendida por usuario")
     
     // Limpiar timers de advertencia
     if (countdownRef.current) {
       clearInterval(countdownRef.current)
+      countdownRef.current = null
     }
     
     // Resetear timers normales
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
     if (warningTimeoutRef.current) {
       clearTimeout(warningTimeoutRef.current)
+      warningTimeoutRef.current = null
     }
     
     // Configurar nuevos timers
@@ -142,6 +191,7 @@ export function useInactivityTimeout({
           if (prev <= 1) {
             if (countdownRef.current) {
               clearInterval(countdownRef.current)
+              countdownRef.current = null
             }
             warningActiveRef.current = false
             return 0
@@ -189,6 +239,7 @@ export function useInactivityTimeout({
         // Pestaña se mostró nuevamente
         if (visibilityCheckRef.current) {
           clearTimeout(visibilityCheckRef.current)
+          visibilityCheckRef.current = null
         }
 
         // Si la pestaña estuvo oculta, verificar si la sesión debe cerrarse
@@ -239,17 +290,23 @@ export function useInactivityTimeout({
         document.removeEventListener(event, handleActivity)
       })
       document.removeEventListener("visibilitychange", handleVisibilityChange)
+      
+      // Limpiar todos los timers
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
       }
       if (warningTimeoutRef.current) {
         clearTimeout(warningTimeoutRef.current)
+        warningTimeoutRef.current = null
       }
       if (countdownRef.current) {
         clearInterval(countdownRef.current)
+        countdownRef.current = null
       }
       if (visibilityCheckRef.current) {
         clearTimeout(visibilityCheckRef.current)
+        visibilityCheckRef.current = null
       }
     }
   }, [resetTimers, logout])
