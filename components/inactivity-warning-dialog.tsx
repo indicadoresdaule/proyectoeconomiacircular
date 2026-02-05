@@ -3,14 +3,15 @@
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Clock, LogOut, AlertTriangle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, AlertTriangle, RefreshCw } from "lucide-react"
+import { useRef } from "react"
 
 interface InactivityWarningDialogProps {
   open: boolean
@@ -29,110 +30,122 @@ export function InactivityWarningDialog({
   const seconds = remainingTime % 60
 
   const formatTime = () => {
-    if (minutes > 0) {
-      return `${minutes}:${seconds.toString().padStart(2, "0")}`
-    }
-    return `${seconds} segundos`
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`
   }
 
-  // Determinar color basado en tiempo restante
-  const getWarningLevel = () => {
-    const totalSeconds = remainingTime
-    if (totalSeconds <= 30) return "red"
-    if (totalSeconds <= 90) return "amber"
-    return "blue"
+  // Determinar nivel de urgencia
+  const isCritical = remainingTime <= 30
+  const isWarning = remainingTime <= 60
+
+  // Función para manejar el clic en "Mantener sesión"
+  const handleExtendClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onExtend()
   }
 
-  const warningLevel = getWarningLevel()
-  const colorMap = {
-    red: {
-      bg: "bg-red-50",
-      border: "border-red-200",
-      text: "text-red-700",
-      title: "text-red-600",
-      number: "text-red-800",
-      icon: "text-red-600",
-    },
-    amber: {
-      bg: "bg-amber-50",
-      border: "border-amber-200",
-      text: "text-amber-700",
-      title: "text-amber-600",
-      number: "text-amber-800",
-      icon: "text-amber-600",
-    },
-    blue: {
-      bg: "bg-blue-50",
-      border: "border-blue-200",
-      text: "text-blue-700",
-      title: "text-blue-600",
-      number: "text-blue-800",
-      icon: "text-blue-600",
-    },
+  // Función para manejar el clic en "Cerrar ahora"
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    onLogout()
   }
-
-  const colors = colorMap[warningLevel]
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent className="max-w-md border-2" role="alertdialog" aria-labelledby="inactivity-title">
+      <AlertDialogContent 
+        className="max-w-md inactivity-dialog"
+        id="inactivity-dialog"
+        onMouseMove={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <AlertDialogHeader>
-          <AlertDialogTitle className={`flex items-center gap-2 ${colors.title}`} id="inactivity-title">
-            {warningLevel === "red" ? (
-              <AlertTriangle className={`h-6 w-6 ${colors.icon}`} />
+          <div 
+            className="flex items-center justify-center mb-4"
+            onMouseMove={(e) => e.stopPropagation()}
+          >
+            {isCritical ? (
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75"></div>
+                <AlertTriangle className="relative h-12 w-12 text-red-600" />
+              </div>
             ) : (
-              <Clock className={`h-5 w-5 ${colors.icon}`} />
+              <Clock className="h-12 w-12 text-amber-600" />
             )}
-            {warningLevel === "red" ? "¡Sesión a cerrarse!" : "Sesión por expirar"}
+          </div>
+          
+          <AlertDialogTitle className="text-center text-xl">
+            {isCritical ? "¡Sesión por cerrarse!" : "Sesión inactiva"}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <p className="font-medium text-foreground">
-                Por tu seguridad, tu sesión se cerrará automáticamente por inactividad.
+          
+          <AlertDialogDescription asChild>
+            <div 
+              className="space-y-4 pt-2 text-center"
+              onMouseMove={(e) => e.stopPropagation()}
+            >
+              <p className="text-foreground">
+                {isCritical 
+                  ? "Tu sesión se cerrará en instantes por seguridad."
+                  : "Tu sesión se cerrará pronto por inactividad."
+                }
               </p>
-              <p className="text-sm">
-                {warningLevel === "red"
-                  ? "¡Rápido! Tu sesión se cierra en unos momentos."
-                  : "No hemos detectado actividad en los últimos minutos."}
-              </p>
+              
+              {/* Contador regresivo */}
+              <div 
+                className={`mx-auto w-fit rounded-lg border p-4 ${
+                  isCritical 
+                    ? "border-red-200 bg-red-50 animate-pulse" 
+                    : isWarning 
+                    ? "border-amber-200 bg-amber-50" 
+                    : "border-blue-200 bg-blue-50"
+                }`}
+                onMouseMove={(e) => e.stopPropagation()}
+              >
+                <p className="text-sm font-medium mb-1">
+                  {isCritical ? "¡Apúrate!" : "Tiempo restante"}
+                </p>
+                <p className={`text-3xl font-bold font-mono ${
+                  isCritical ? "text-red-700" :
+                  isWarning ? "text-amber-700" :
+                  "text-blue-700"
+                }`}>
+                  {formatTime()}
+                </p>
+                <p className="text-xs mt-1 text-muted-foreground">
+                  minutos : segundos
+                </p>
+              </div>
             </div>
-
-            <div className={`${colors.bg} border ${colors.border} rounded-lg p-4 text-center`}>
-              <p className={`text-sm ${colors.text} mb-2 font-medium`}>Tiempo restante:</p>
-              <p className={`text-4xl font-bold ${colors.number} font-mono tracking-wider`}>
-                {formatTime()}
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-600 leading-relaxed">
-                <strong>Nota:</strong> Si cierras esta pestaña y no vuelves en 5 minutos, tu sesión se cerrará automáticamente.
-              </p>
-            </div>
-
-            <p className="text-sm text-foreground">
-              Haz clic en &quot;<strong>Continuar sesión</strong>&quot; para seguir trabajando.
-            </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-          <AlertDialogCancel 
-            onClick={onLogout}
-            className="flex items-center justify-center gap-2"
+
+        <AlertDialogFooter 
+          className="flex-col sm:flex-row gap-3"
+          onMouseMove={(e) => e.stopPropagation()}
+        >
+          <Button
+            variant="ghost"
+            onClick={handleLogoutClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
           >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </AlertDialogCancel>
+            Cerrar ahora
+          </Button>
+          
           <AlertDialogAction 
-            onClick={onExtend}
-            className={`${
-              warningLevel === "red"
-                ? "bg-red-600 hover:bg-red-700"
+            onClick={handleExtendClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`flex items-center gap-2 ${
+              isCritical 
+                ? "bg-red-600 hover:bg-red-700 animate-bounce" 
                 : "bg-primary hover:bg-primary/90"
-            } flex items-center justify-center gap-2`}
+            }`}
+            autoFocus
           >
-            <Clock className="h-4 w-4" />
-            Continuar sesión
+            <RefreshCw className="h-4 w-4" />
+            {isCritical ? "¡Mantener sesión!" : "Continuar trabajando"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
