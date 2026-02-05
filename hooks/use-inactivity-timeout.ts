@@ -12,8 +12,8 @@ interface UseInactivityTimeoutOptions {
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 0.06,
-  warningMinutes = 0.03,
+  timeoutMinutes = 2,
+  warningMinutes = 1,
   onWarning,
   onTimeout,
 }: UseInactivityTimeoutOptions = {}) {
@@ -25,9 +25,11 @@ export function useInactivityTimeout({
   const countdownRef = useRef<NodeJS.Timeout | null>(null)
   const visibilityCheckRef = useRef<NodeJS.Timeout | null>(null)
   const tabHiddenTimeRef = useRef<number | null>(null)
+  const sessionStartTimeRef = useRef<number>(Date.now())
+  const warningActiveRef = useRef<boolean>(false)
 
   const timeoutMs = timeoutMinutes * 60 * 1000
-  const warningMs = (timeoutMinutes - warningMinutes) * 60 * 1000
+  const warningTriggerMs = (timeoutMinutes - warningMinutes) * 60 * 1000
   const tabCloseTimeoutMs = 5 * 60 * 1000 // 5 minutos para cerrar si la pestaña está oculta
 
   const logout = useCallback(async () => {
@@ -36,12 +38,17 @@ export function useInactivityTimeout({
       await supabase.auth.signOut()
       router.push("/login?reason=inactivity")
     } catch (error) {
-      console.error("Error al cerrar sesion:", error)
+      console.error("Error al cerrar sesión:", error)
       router.push("/login?reason=inactivity")
     }
   }, [router])
 
   const resetTimers = useCallback(() => {
+    // Solo resetear si no hay advertencia activa
+    if (warningActiveRef.current) {
+      return
+    }
+
     // Limpiar timers existentes
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -55,6 +62,8 @@ export function useInactivityTimeout({
 
     // Resetear tiempo de pestaña oculta
     tabHiddenTimeRef.current = null
+    // Resetear tiempo de inicio de sesión
+    sessionStartTimeRef.current = Date.now()
 
     // Ocultar advertencia si estaba visible
     setShowWarning(false)
@@ -62,6 +71,7 @@ export function useInactivityTimeout({
 
     // Configurar timer de advertencia
     warningTimeoutRef.current = setTimeout(() => {
+      warningActiveRef.current = true
       setShowWarning(true)
       setRemainingTime(warningMinutes * 60)
       onWarning?.()
@@ -73,24 +83,93 @@ export function useInactivityTimeout({
             if (countdownRef.current) {
               clearInterval(countdownRef.current)
             }
+            warningActiveRef.current = false
             return 0
           }
           return prev - 1
         })
       }, 1000)
-    }, warningMs)
 
-    // Configurar timer de cierre de sesion
+      // Configurar el logout para cuando termine la advertencia
+      const timeUntilLogout = warningMinutes * 60 * 1000
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        warningActiveRef.current = false
+        onTimeout?.()
+        logout()
+      }, timeUntilLogout)
+      
+    }, warningTriggerMs)
+
+    // Configurar timer de cierre de sesión
     timeoutRef.current = setTimeout(() => {
+      warningActiveRef.current = false
       onTimeout?.()
       logout()
     }, timeoutMs)
-  }, [timeoutMs, warningMs, warningMinutes, logout, onWarning, onTimeout])
+  }, [timeoutMs, warningTriggerMs, warningMinutes, logout, onWarning, onTimeout])
 
   const extendSession = useCallback(() => {
+    warningActiveRef.current = false
     setShowWarning(false)
-    resetTimers()
-  }, [resetTimers])
+    
+    // Limpiar timers de advertencia
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current)
+    }
+    
+    // Resetear timers normales
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    if (warningTimeoutRef.current) {
+      clearTimeout(warningTimeoutRef.current)
+    }
+    
+    // Configurar nuevos timers
+    warningTimeoutRef.current = setTimeout(() => {
+      warningActiveRef.current = true
+      setShowWarning(true)
+      setRemainingTime(warningMinutes * 60)
+      onWarning?.()
+
+      countdownRef.current = setInterval(() => {
+        setRemainingTime((prev) => {
+          if (prev <= 1) {
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current)
+            }
+            warningActiveRef.current = false
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      const timeUntilLogout = warningMinutes * 60 * 1000
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        warningActiveRef.current = false
+        onTimeout?.()
+        logout()
+      }, timeUntilLogout)
+      
+    }, warningTriggerMs)
+
+    timeoutRef.current = setTimeout(() => {
+      warningActiveRef.current = false
+      onTimeout?.()
+      logout()
+    }, timeoutMs)
+  }, [warningTriggerMs, warningMinutes, timeoutMs, logout, onWarning, onTimeout])
 
   useEffect(() => {
     // Manejo de visibilidad de pestaña
@@ -133,17 +212,15 @@ export function useInactivityTimeout({
     // Eventos que indican actividad del usuario
     const activityEvents = [
       "mousedown",
-      "mousemove",
       "keydown",
       "scroll",
       "touchstart",
-      "click",
       "wheel",
     ]
 
     const handleActivity = () => {
-      // Solo resetear si no estamos en la pantalla de advertencia
-      if (!showWarning) {
+      // Solo resetear si no hay advertencia activa
+      if (!warningActiveRef.current) {
         resetTimers()
       }
     }
@@ -175,7 +252,7 @@ export function useInactivityTimeout({
         clearTimeout(visibilityCheckRef.current)
       }
     }
-  }, [resetTimers, showWarning, logout])
+  }, [resetTimers, logout])
 
   return {
     showWarning,
