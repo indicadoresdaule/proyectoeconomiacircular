@@ -1,14 +1,17 @@
 "use client"
 
-import React, { Suspense } from "react"
+import React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
 
-// Componente interno que usa useSearchParams
-function SessionTimeoutProviderContent({ children }: { children: React.ReactNode }) {
+interface SessionTimeoutProviderProps {
+  children: React.ReactNode
+}
+
+export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [hasInitialized, setHasInitialized] = useState(false)
@@ -31,10 +34,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
         
         // Si hay sesión y venimos de inactividad, limpiar el parámetro de la URL
         if (session && isInactivityRedirect) {
-          // Usar replaceState para limpiar la URL sin recargar
-          const url = new URL(window.location.href)
-          url.searchParams.delete('reason')
-          window.history.replaceState({}, '', url.toString())
+          window.history.replaceState({}, '', pathname)
         }
       } catch (error) {
         console.error("Error verificando autenticación:", error)
@@ -64,8 +64,8 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
   }, [pathname, isInactivityRedirect])
 
   const { showWarning, remainingTime, extendSession, logout } = useInactivityTimeout({
-    timeoutMinutes: 1,
-    warningMinutes: 0.5,
+    timeoutMinutes: 30,
+    warningMinutes: 5,
   })
 
   // No mostrar nada durante la carga inicial
@@ -93,20 +93,5 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
         onLogout={logout}
       />
     </>
-  )
-}
-
-// Componente wrapper principal que usa Suspense
-interface SessionTimeoutProviderProps {
-  children: React.ReactNode
-}
-
-export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
-  return (
-    <Suspense fallback={<>{children}</>}>
-      <SessionTimeoutProviderContent>
-        {children}
-      </SessionTimeoutProviderContent>
-    </Suspense>
   )
 }
