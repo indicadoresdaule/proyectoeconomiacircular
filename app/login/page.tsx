@@ -73,6 +73,11 @@ export default function LoginPage() {
     }
   }
 
+  const handleBackToHome = () => {
+    // Usar window.location.href para forzar una recarga completa de la página
+    window.location.href = "/"
+  }
+
   if (showResetForm) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-secondary-bg px-4">
@@ -229,7 +234,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent pr-11 transition-all"
-                  placeholder=""
+                  placeholder="••••••••"
                 />
                 <button
                   type="button"
@@ -273,7 +278,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-border text-center">
             <button
-              onClick={() => router.push("/")}
+              onClick={handleBackToHome} // Cambiado para usar la nueva función
               className="text-sm text-secondary-text hover:text-foreground transition-colors inline-flex items-center gap-1"
             >
               <ArrowLeft className="w-4 h-4" />
