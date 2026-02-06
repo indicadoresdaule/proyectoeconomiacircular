@@ -12,8 +12,8 @@ interface UseInactivityTimeoutOptions {
 }
 
 export function useInactivityTimeout({
-  timeoutMinutes = 2,
-  warningMinutes = 1,
+  timeoutMinutes = 30,
+  warningMinutes = 5,
   onWarning,
   onTimeout,
 }: UseInactivityTimeoutOptions = {}) {
@@ -161,7 +161,7 @@ export function useInactivityTimeout({
     warningActiveRef.current = false
     setShowWarning(false)
     
-    console.log("[v0] Sesión extendida por usuario")
+    console.log("[Sesión extendida por usuario")
     
     // Limpiar timers de advertencia
     if (countdownRef.current) {
