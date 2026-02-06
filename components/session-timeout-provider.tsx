@@ -1,17 +1,14 @@
 "use client"
 
-import React from "react"
+import React, { Suspense } from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
 
-interface SessionTimeoutProviderProps {
-  children: React.ReactNode
-}
-
-export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
+// Componente interno que usa useSearchParams
+function SessionTimeoutProviderContent({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [hasInitialized, setHasInitialized] = useState(false)
@@ -34,7 +31,10 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         
         // Si hay sesión y venimos de inactividad, limpiar el parámetro de la URL
         if (session && isInactivityRedirect) {
-          window.history.replaceState({}, '', pathname)
+          // Usar replaceState para limpiar la URL sin recargar
+          const url = new URL(window.location.href)
+          url.searchParams.delete('reason')
+          window.history.replaceState({}, '', url.toString())
         }
       } catch (error) {
         console.error("Error verificando autenticación:", error)
@@ -93,5 +93,20 @@ export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps
         onLogout={logout}
       />
     </>
+  )
+}
+
+// Componente wrapper principal que usa Suspense
+interface SessionTimeoutProviderProps {
+  children: React.ReactNode
+}
+
+export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <SessionTimeoutProviderContent>
+        {children}
+      </SessionTimeoutProviderContent>
+    </Suspense>
   )
 }
