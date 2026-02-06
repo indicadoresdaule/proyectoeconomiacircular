@@ -15,7 +15,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Rutas publicas que no requieren timeout
+  // Rutas públicas que no requieren timeout
   const publicRoutes = ["/login", "/auth/forgot-password", "/auth/reset-password", "/auth/callback"]
   const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
 
@@ -72,7 +72,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
   // Efecto para limpiar timers cuando el usuario no está autenticado
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
-      console.log("[v0] Usuario no autenticado, limpiando timers de inactividad")
+      console.log("Usuario no autenticado, limpiando timers de inactividad")
       cleanupAllTimers?.()
     }
   }, [isAuthenticated, isLoading, cleanupAllTimers])
@@ -82,7 +82,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
     return <>{children}</>
   }
 
-  // No aplicar timeout en rutas publicas o si no esta autenticado
+  // No aplicar timeout en rutas públicas o si no está autenticado
   if (isPublicRoute || !isAuthenticated) {
     return <>{children}</>
   }
