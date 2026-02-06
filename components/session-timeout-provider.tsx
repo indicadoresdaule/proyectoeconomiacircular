@@ -63,10 +63,19 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
     }
   }, [pathname, isInactivityRedirect])
 
-  const { showWarning, remainingTime, extendSession, logout } = useInactivityTimeout({
+  // Solo usar el hook de timeout si el usuario está autenticado
+  const { showWarning, remainingTime, extendSession, logout, cleanupAllTimers } = useInactivityTimeout({
     timeoutMinutes: 30,
     warningMinutes: 5,
   })
+
+  // Efecto para limpiar timers cuando el usuario no está autenticado
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      console.log("[v0] Usuario no autenticado, limpiando timers de inactividad")
+      cleanupAllTimers?.()
+    }
+  }, [isAuthenticated, isLoading, cleanupAllTimers])
 
   // No mostrar nada durante la carga inicial
   if (isLoading) {
