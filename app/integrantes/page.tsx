@@ -402,16 +402,23 @@ export default function IntegrantesPage() {
                         {titulosPorTipo[filtroActivo as UserRole]}
                       </h2>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="flex flex-wrap justify-left gap-6">
                       {integrantesFiltrados.map((integrante) => (
-                        <IntegranteCard 
-                          key={integrante.id} 
-                          integrante={integrante}
-                          isOwner={user?.id === integrante.user_id}
-                          canEdit={user !== null} // Solo usuarios autenticados pueden ver opciones de edición
-                          onEdit={handleEdit}
-                          onDelete={() => setIsDeleteDialogOpen(true)}
-                        />
+                        <div
+                          key={integrante.id}
+                          className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]"
+                          style={{
+                            height: 'fit-content' // Esto permite que cada tarjeta tenga su propia altura
+                          }}
+                        >
+                          <IntegranteCard 
+                            integrante={integrante}
+                            isOwner={user?.id === integrante.user_id}
+                            canEdit={user !== null}
+                            onEdit={handleEdit}
+                            onDelete={() => setIsDeleteDialogOpen(true)}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -446,16 +453,23 @@ export default function IntegrantesPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          <div className="flex flex-wrap justify-left gap-6">
                             {integrantesDelTipo.map((integrante) => (
-                              <IntegranteCard 
-                                key={integrante.id} 
-                                integrante={integrante}
-                                isOwner={user?.id === integrante.user_id}
-                                canEdit={user !== null} // Solo usuarios autenticados pueden ver opciones de edición
-                                onEdit={handleEdit}
-                                onDelete={() => setIsDeleteDialogOpen(true)}
-                              />
+                              <div
+                                key={integrante.id}
+                                className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(25%-18px)]"
+                                style={{
+                                  height: 'fit-content' // Esto permite que cada tarjeta tenga su propia altura
+                                }}
+                              >
+                                <IntegranteCard 
+                                  integrante={integrante}
+                                  isOwner={user?.id === integrante.user_id}
+                                  canEdit={user !== null}
+                                  onEdit={handleEdit}
+                                  onDelete={() => setIsDeleteDialogOpen(true)}
+                                />
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -729,12 +743,12 @@ function IntegranteCard({
             >
               {showFullDescription ? (
                 <>
-                  <EyeOff className="w-3 h-3" />
+                  <EyeOff className="w-4 h-4" />
                   Ver menos
                 </>
               ) : (
                 <>
-                  <Eye className="w-3 h-3" />
+                  <Eye className="w-4 h-4" />
                   Ver más
                 </>
               )}
