@@ -1347,55 +1347,59 @@ export default function Home() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
-                          className="bg-white/95 backdrop-blur-sm border-gray-200 min-w-[240px] shadow-xl"
+                          className="bg-white border-gray-200 min-w-[240px] shadow-xl"
                           align="end"
+                          sideOffset={5}
                         >
-                          <DropdownMenuLabel className="text-sm font-medium text-gray-500 border-b pb-2">
+                          <DropdownMenuLabel className="text-sm font-medium text-gray-700 border-b pb-2">
                             Orden de videos ({videos.length})
                           </DropdownMenuLabel>
                           {videos.map((video, index) => (
                             <DropdownMenuItem
                               key={video.id}
-                              className="flex items-center justify-between gap-2 py-3 px-4 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+                              className="flex items-center justify-between gap-2 py-3 px-4 cursor-pointer hover:bg-emerald-50 focus:bg-emerald-50 group/item"
                               onSelect={(e) => e.preventDefault()}
+                              asChild
                             >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded flex-shrink-0">
-                                  #{video.orden}
-                                </span>
-                                <span className="text-sm truncate text-pretty min-w-0">
-                                  {video.titulo}
-                                </span>
-                              </div>
-                              <div className="flex gap-1 flex-shrink-0">
-                                {index > 0 && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 hover:bg-blue-100 text-blue-600"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleChangeVideoOrder(video.id, 'up')
-                                    }}
-                                    title="Subir posición"
-                                  >
-                                    <ArrowUp className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                {index < videos.length - 1 && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-6 w-6 hover:bg-blue-100 text-blue-600"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleChangeVideoOrder(video.id, 'down')
-                                    }}
-                                    title="Bajar posición"
-                                  >
-                                    <ArrowDown className="h-3 w-3" />
-                                  </Button>
-                                )}
+                              <div className="w-full">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <span className="text-xs font-mono px-2 py-1 rounded flex-shrink-0 bg-gray-100 group-hover/item:bg-emerald-100 group-hover/item:text-emerald-700 transition-colors duration-200">
+                                    #{video.orden}
+                                  </span>
+                                  <span className="text-sm truncate text-pretty min-w-0 text-gray-900 group-hover/item:text-emerald-700 transition-colors duration-200">
+                                    {video.titulo}
+                                  </span>
+                                </div>
+                                <div className="flex gap-1 flex-shrink-0 ml-2">
+                                  {index > 0 && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 hover:bg-emerald-100 text-gray-600 hover:text-emerald-700 transition-colors duration-200"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleChangeVideoOrder(video.id, 'up')
+                                      }}
+                                      title="Subir posición"
+                                    >
+                                      <ArrowUp className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                  {index < videos.length - 1 && (
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 hover:bg-emerald-100 text-gray-600 hover:text-emerald-700 transition-colors duration-200"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleChangeVideoOrder(video.id, 'down')
+                                      }}
+                                      title="Bajar posición"
+                                    >
+                                      <ArrowDown className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </DropdownMenuItem>
                           ))}
