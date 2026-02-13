@@ -5,10 +5,22 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
-        disallow: ["/api/", "/admin/"],
+        allow: ["/", "/indicadores", "/avances", "/reportes", "/metas", "/integrantes"],
+        disallow: ["/api/", "/admin/", "/gestion-usuarios", "/auth/", "/login", "/perfil"],
+        crawlDelay: 0.5,
+      },
+      {
+        userAgent: "GPTBot",
+        disallow: "/",
+      },
+      {
+        userAgent: "CCBot",
+        disallow: "/",
       },
     ],
-    sitemap: "https://proyectoeconomiacircular.vercel.app/sitemap.xml",
+    sitemap: [
+      "https://proyectoeconomiacircular.vercel.app/sitemap.xml",
+    ],
+    host: "https://proyectoeconomiacircular.vercel.app",
   }
 }
