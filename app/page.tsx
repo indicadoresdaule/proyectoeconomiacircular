@@ -286,7 +286,7 @@ const VideoCard = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200 rounded-full px-4"
+                className="bg-white hover:bg-emerald-600 text-emerald-700 hover:text-white border-emerald-200 hover:border-emerald-600 rounded-full px-4 transition-colors duration-200"
                 onClick={(e) => { e.stopPropagation(); handleToggleExpand(); }}
               >
                 {isExpanded ? <><ChevronUp className="h-4 w-4 mr-2" />Contraer</> : <><ChevronDown className="h-4 w-4 mr-2" />Ver más</>}
