@@ -8,16 +8,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: "weekly",
-      priority: 1,
+      priority: 1.0,
     },
     {
-      url: `${baseUrl}/metas`,
+      url: `${baseUrl}/integrantes`,
       lastModified: new Date(),
       changeFrequency: "monthly",
-      priority: 0.8,
+      priority: 0.9,
     },
     {
       url: `${baseUrl}/indicadores`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/indicadores/caracterizacion`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
@@ -26,31 +32,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/indicadores/autosustentabilidad`,
       lastModified: new Date(),
       changeFrequency: "daily",
-      priority: 0.8,
+      priority: 0.9,
     },
     {
-      url: `${baseUrl}/indicadores/caracterizacion`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/avances`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/reportes`,
+      url: `${baseUrl}/metas`,
       lastModified: new Date(),
       changeFrequency: "monthly",
-      priority: 0.7,
+      priority: 0.85,
     },
-    {
-      url: `${baseUrl}/formularios`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
+    
   ]
 }
