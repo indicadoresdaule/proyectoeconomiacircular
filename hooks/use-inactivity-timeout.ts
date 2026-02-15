@@ -35,7 +35,6 @@ export function useInactivityTimeout({
   const timeoutMs = timeoutMinutes * 60 * 1000
   const warningTriggerMs = (timeoutMinutes - warningMinutes) * 60 * 1000
   const tabCloseTimeoutMs = 5 * 60 * 1000 // 5 minutos para cerrar sesión cuando se cierra la pestaña
-  const tabHiddenTimeoutMs = 5 * 60 * 1000 // 5 minutos para cerrar si la pestaña está oculta
 
   // Función para verificar autenticación
   const checkAuthentication = useCallback(async (): Promise<boolean> => {
@@ -333,19 +332,9 @@ export function useInactivityTimeout({
       if (document.hidden) {
         // Pestaña se ocultó - guardar tiempo
         tabHiddenTimeRef.current = Date.now()
-        console.log("Pestaña ocultada, iniciando timer de 5 minutos")
+        console.log("Pestaña ocultada")
 
-        // Si la pestaña permanece oculta por 5 minutos, cerrar sesión
-        visibilityCheckRef.current = setTimeout(async () => {
-          if (document.hidden) {
-            // Verificar si está autenticado antes de proceder
-            const isAuth = await checkAuthentication()
-            if (isAuth) {
-              console.log("Pestaña oculta por 5 minutos, cerrando sesión")
-              logout()
-            }
-          }
-        }, tabHiddenTimeoutMs)
+        // No hay timer específico para pestaña oculta, solo se verifica al volver visible
       } else {
         // Pestaña se mostró nuevamente
         if (visibilityCheckRef.current) {
@@ -359,7 +348,8 @@ export function useInactivityTimeout({
           const hiddenDuration = Date.now() - tabHiddenTimeRef.current
           console.log(`Pestaña estuvo oculta por ${Math.round(hiddenDuration / 1000)} segundos`)
           
-          if (hiddenDuration >= tabHiddenTimeoutMs) {
+          // Usar el mismo timeout que para cierre de pestaña (5 minutos)
+          if (hiddenDuration >= tabCloseTimeoutMs) {
             // Verificar autenticación antes de proceder
             checkAuthentication().then((isAuth) => {
               if (isAuth) {
