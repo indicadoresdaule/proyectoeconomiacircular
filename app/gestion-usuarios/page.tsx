@@ -517,7 +517,7 @@ export default function GestionUsuariosPage() {
               variant="outline" 
               size="icon" 
               onClick={() => router.push("/")} 
-              title="Volver al perfil"
+              title="Volver a inicio"
               className="hover:bg-red-100 hover:text-red-600 hover:scale-110 transition-all duration-300"
             >
               <ArrowLeft className="w-4 h-4" />
