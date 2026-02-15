@@ -516,7 +516,7 @@ export default function GestionUsuariosPage() {
             <Button 
               variant="outline" 
               size="icon" 
-              onClick={() => router.push("/perfil")} 
+              onClick={() => router.push("/")} 
               title="Volver al perfil"
               className="hover:bg-red-100 hover:text-red-600 hover:scale-110 transition-all duration-300"
             >
