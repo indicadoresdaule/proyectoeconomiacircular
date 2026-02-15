@@ -93,7 +93,7 @@ const NOMBRES_CAMPOS_DB: Record<string, string> = {
   escombros_otros_kg: "Escombros - Otros (kg)",
 }
 
-// Componente GraficoReusable con dimensiones responsivas
+// Componente GraficoReusable con dimensiones fijas
 interface GraficoReusableProps {
   datos: { name: string; value: number; porcentaje: number }[]
   tipo: "barras" | "torta" | "lineal"
@@ -119,9 +119,10 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
   tituloX = "Categorías",
   tituloY = "Peso (kg)"
 }) => {
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-  const chartWidth = exportMode ? 900 : (esMovil || isMobile) ? 350 : 819;
-  const chartHeight = exportMode ? 600 : (esMovil || isMobile) ? 400 : 520;
+  // SIEMPRE usar dimensiones fijas de 819x520 para TODOS los dispositivos
+  // Esto garantiza que las descargas sean idénticas en PC y móvil
+  const chartWidth = exportMode ? 900 : 819;
+  const chartHeight = exportMode ? 600 : 520;
 
   // Importar Recharts dinámicamente
   const [Recharts, setRecharts] = useState<any>(null)
@@ -198,11 +199,11 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
     const { x, y, width, value, index } = props
     const porcentaje = datos[index]?.porcentaje || 0
     
-    const isMobileSize = (esMovil || isMobile);
-    const fontSizeValue = isMobileSize ? 8 : 10;
-    const fontSizePorcentaje = isMobileSize ? 7 : 9;
-    const yOffsetValue = isMobileSize ? -25 : -35;
-    const yOffsetPorcentaje = isMobileSize ? -15 : -20;
+    // Siempre usar tamaños de PC para consistencia
+    const fontSizeValue = 10;
+    const fontSizePorcentaje = 9;
+    const yOffsetValue = -35;
+    const yOffsetPorcentaje = -20;
     
     return (
       <g>
@@ -232,16 +233,15 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
 
   const CustomRotatedTick = (props: any) => {
     const { x, y, payload } = props
-    const isMobileSize = (esMovil || isMobile);
     
     return (
       <g transform={`translate(${x},${y}) rotate(-45)`}>
         <text
           x={0}
           y={0}
-          dy={isMobileSize ? 10 : 20}
+          dy={20}
           textAnchor="end"
-          fontSize={isMobileSize ? 8 : 11}
+          fontSize={11}
           fill="#4b5563"
           className="font-medium"
         >
@@ -256,14 +256,6 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
   const lineColors = colors || COLORS_LINEAL
 
   if (tipo === "barras") {
-    const isMobileSize = (esMovil || isMobile);
-    const marginTop = isMobileSize ? 30 : 45;
-    const marginBottom = isMobileSize ? 80 : 110;
-    const marginLeft = isMobileSize ? 40 : 60;
-    const marginRight = isMobileSize ? 40 : 60;
-    const barSize = isMobileSize ? 25 : 45;
-    const barGap = isMobileSize ? 5 : 9;
-    
     return (
       <div style={{ width: chartWidth, height: chartHeight }}>
         <BarChart 
@@ -271,29 +263,25 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
           height={chartHeight}
           data={datos} 
           margin={{ 
-            top: marginTop,
-            right: marginRight, 
-            left: marginLeft, 
-            bottom: marginBottom
+            top: 45,
+            right: 60, 
+            left: 60, 
+            bottom: 110
           }}
-          barSize={barSize}
-          barGap={barGap}
+          barSize={45}
+          barGap={9}
         >
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="#e5e7eb" 
-            vertical={false}
-          />
+          {/* CartesianGrid eliminado */}
           <XAxis 
             dataKey="name" 
-            height={isMobileSize ? 60 : 110}
+            height={110}
             tick={<CustomRotatedTick />}
             interval={0}
             axisLine={{ stroke: "#d1d5db" }}
             tickLine={{ stroke: "#d1d5db" }}
           />
           <YAxis 
-            fontSize={isMobileSize ? 10 : 12} 
+            fontSize={12} 
             tick={{ fill: "#4b5563" }}
             axisLine={{ stroke: "#d1d5db" }}
             tickLine={{ stroke: "#d1d5db" }}
@@ -322,13 +310,6 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
   }
 
   if (tipo === "torta") {
-    const isMobileSize = (esMovil || isMobile);
-    const outerRadius = isMobileSize ? 80 : 120;
-    const innerRadius = isMobileSize ? 40 : 60;
-    const legendHeight = isMobileSize ? 100 : 80;
-    const legendFontSize = isMobileSize ? 8 : 10;
-    const iconSize = isMobileSize ? 6 : 8;
-    
     return (
       <div style={{ width: chartWidth, height: chartHeight }}>
         <PieChart width={chartWidth} height={chartHeight}>
@@ -350,9 +331,9 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                 <g>
                   <text
                     x={x}
-                    y={y - (isMobileSize ? 3 : 5)}
+                    y={y - 5}
                     textAnchor="middle"
-                    fontSize={isMobileSize ? 7 : 9}
+                    fontSize={9}
                     fontWeight="600"
                     fill="#1f2937"
                   >
@@ -360,9 +341,9 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                   </text>
                   <text
                     x={x}
-                    y={y + (isMobileSize ? 5 : 7)}
+                    y={y + 7}
                     textAnchor="middle"
-                    fontSize={isMobileSize ? 6 : 8}
+                    fontSize={8}
                     fontWeight="500"
                     fill="#ff0000"
                   >
@@ -371,8 +352,8 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                 </g>
               )
             }}
-            outerRadius={outerRadius}
-            innerRadius={innerRadius}
+            outerRadius={120}
+            innerRadius={60}
             dataKey="value"
             paddingAngle={3}
           >
@@ -389,22 +370,20 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
           {!exportMode && (
             <Legend 
               verticalAlign="bottom"
-              height={legendHeight}
+              height={80}
               wrapperStyle={{ 
-                fontSize: legendFontSize,
+                fontSize: 10,
                 paddingTop: '10px',
                 overflow: 'auto',
-                maxHeight: `${legendHeight}px`
+                maxHeight: `80px`
               }}
               formatter={(value, entry: any) => {
                 const porcentaje = entry.payload?.porcentaje ?? 0
                 const valor = entry.payload?.value ?? 0
                 
-                // Acortar nombres largos más en móvil
+                // Acortar nombres largos
                 let shortName = value
-                if (isMobileSize && value.length > 15) {
-                  shortName = value.substring(0, 12) + "..."
-                } else if (value.length > 20) {
+                if (value.length > 20) {
                   shortName = value.substring(0, 20) + "..."
                 }
                 
@@ -412,7 +391,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
               }}
               layout="horizontal"
               align="center"
-              iconSize={iconSize}
+              iconSize={8}
             />
           )}
         </PieChart>
@@ -421,12 +400,6 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
   }
 
   if (tipo === "lineal") {
-    const isMobileSize = (esMovil || isMobile);
-    const marginTop = isMobileSize ? 40 : 55;
-    const marginBottom = isMobileSize ? 80 : 110;
-    const marginLeft = isMobileSize ? 40 : 60;
-    const marginRight = isMobileSize ? 40 : 60;
-    
     return (
       <div style={{ width: chartWidth, height: chartHeight }}>
         <LineChart 
@@ -434,20 +407,16 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
           height={chartHeight}
           data={datos} 
           margin={{ 
-            top: marginTop,
-            right: marginRight, 
-            left: marginLeft, 
-            bottom: marginBottom
+            top: 55,
+            right: 60, 
+            left: 60, 
+            bottom: 110
           }}
         >
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="#e5e7eb" 
-            vertical={false}
-          />
+          {/* CartesianGrid eliminado */}
           <XAxis 
             dataKey="name" 
-            height={isMobileSize ? 60 : 110}
+            height={110}
             tick={<CustomRotatedTick />}
             interval={0}
             axisLine={{ stroke: "#d1d5db" }}
@@ -456,7 +425,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
             padding={{left:20, right:20}}
           />
           <YAxis 
-            fontSize={isMobileSize ? 10 : 12} 
+            fontSize={12} 
             tick={{ fill: "#4b5563" }}
             axisLine={{ stroke: "#d1d5db" }}
             tickLine={{ stroke: "#d1d5db" }}
@@ -467,22 +436,17 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
             type="monotone"
             dataKey="value"
             stroke={lineColors[0].border}
-            strokeWidth={isMobileSize ? 2 : 3}
+            strokeWidth={3}
             dot={(props) => {
               const { cx, cy, payload, index } = props
               const dotColor = lineColors[index % lineColors.length].bg
-              const dotRadius = isMobileSize ? 4 : 6;
-              const fontSizeValue = isMobileSize ? 8 : 10;
-              const fontSizePorcentaje = isMobileSize ? 7 : 9;
-              const yOffsetValue = isMobileSize ? -18 : -25;
-              const yOffsetPorcentaje = isMobileSize ? -8 : -10;
               
               return (
                 <g key={`dot-${payload.name}`}>
                   <circle
                     cx={cx}
                     cy={cy}
-                    r={dotRadius}
+                    r={6}
                     fill={dotColor}
                     stroke="white"
                     strokeWidth={2}
@@ -490,9 +454,9 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                   <g>
                     <text
                       x={cx}
-                      y={cy + yOffsetValue}
+                      y={cy - 25}
                       textAnchor="middle"
-                      fontSize={fontSizeValue}
+                      fontSize={10}
                       fontWeight="600"
                       fill="#1f2937"
                     >
@@ -500,9 +464,9 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                     </text>
                     <text
                       x={cx}
-                      y={cy + yOffsetPorcentaje}
+                      y={cy - 10}
                       textAnchor="middle"
-                      fontSize={fontSizePorcentaje}
+                      fontSize={9}
                       fontWeight="500"
                       fill="#ff0000"
                     >
@@ -513,7 +477,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
               )
             }}
             activeDot={{ 
-              r: isMobileSize ? 6 : 8, 
+              r: 8, 
               stroke: "#fff", 
               strokeWidth: 2 
             }}
@@ -706,7 +670,7 @@ export function CaracterizacionReportes() {
     }
   }
 
-  // FUNCIONES DE EXPORTACIÓN (se mantienen igual que en PC)
+  // FUNCIONES DE EXPORTACIÓN
   const exportarCSV = (datos: any[], nombreArchivo: string) => {
     if (datos.length === 0) return
 
@@ -763,7 +727,7 @@ export function CaracterizacionReportes() {
     })
   }
 
-  // MEJORADA: Descargar gráfico con dimensiones fijas (819x520 en PC, 350x400 en móvil)
+  // FUNCIÓN MEJORADA: Descargar gráfico con dimensiones fijas SIEMPRE 819x520
   const descargarGrafico = async (formato: 'png' | 'jpeg' | 'svg') => {
     if (!chartRef.current) {
       console.error('No se encontró el contenedor del gráfico')
@@ -772,11 +736,12 @@ export function CaracterizacionReportes() {
     }
 
     try {
-      const chartWidth = isMobile ? 350 : 819
-      const chartHeight = isMobile ? 400 : 520
+      // Usar SIEMPRE dimensiones fijas de 819x520 para TODOS los dispositivos
+      const chartWidth = 819
+      const chartHeight = 520
       
       // Obtener el contenedor específico del gráfico
-      const chartContainer = chartRef.current.querySelector('div[style*="width:"]') as HTMLElement
+      const chartContainer = chartRef.current.querySelector('div[style*="width: 819px"]') as HTMLElement
       if (!chartContainer) {
         console.error('No se encontró el contenedor del gráfico con dimensiones fijas')
         return
@@ -790,7 +755,6 @@ export function CaracterizacionReportes() {
       chartContainer.style.backgroundColor = '#ffffff'
 
       let backgroundColor: string | null = null
-    let chartBackgroundColor = '#ffffff' // Color de fondo del contenedor del gráfico
     
     if (formato === 'png') {
       backgroundColor = null // Transparente para PNG
@@ -917,7 +881,7 @@ export function CaracterizacionReportes() {
     return resultado
   }
 
-  // FUNCIONES PARA PDF/DOCX (se mantienen igual que en PC)
+  // FUNCIONES PARA PDF/DOCX
   const getDatosTablaParaDocumento = (tipo: "completa" | "categorias") => {
     if (tipo === "completa") {
       return {
@@ -946,7 +910,7 @@ export function CaracterizacionReportes() {
     }
   }
 
-  // Función optimizada para crear imágenes nítidas para Word (se mantiene igual)
+  // Función optimizada para crear imágenes nítidas para Word
   const crearImagenNitidaParaWord = async (dataUrl: string): Promise<string> => {
     try {
       return new Promise((resolve) => {
@@ -1031,7 +995,7 @@ export function CaracterizacionReportes() {
     }
   }
 
-  // Función para capturar gráfico con alta calidad específica para Word (se mantiene igual)
+  // Función para capturar gráfico con alta calidad específica para Word
   const capturarGraficoParaWord = async (tipoGraficoCapturar: "barras" | "torta" | "lineal", datosGraficoCapturar: any[]) => {
     try {
       const tempDiv = document.createElement('div')
@@ -1107,7 +1071,7 @@ export function CaracterizacionReportes() {
     }
   }
 
-  // FUNCIÓN GENERAR WORD CON FORMATO APA 7 MEJORADO (se mantiene igual)
+  // FUNCIÓN GENERAR WORD CON FORMATO APA 7 MEJORADO
   const generarWord = async () => {
     const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
     
@@ -1510,7 +1474,7 @@ export function CaracterizacionReportes() {
     }, 100)
   }
 
-  // FUNCIÓN GENERAR PDF (se mantiene igual que en PC)
+  // FUNCIÓN GENERAR PDF
   const generarPDF = async () => {
     const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
     const fechaCorta = new Date().toISOString().slice(0, 10)
@@ -1551,7 +1515,7 @@ export function CaracterizacionReportes() {
           await new Promise(resolve => setTimeout(resolve, 1500))
         }
 
-        const chartContainer = chartRef.current.querySelector('div[style*="width:"]') as HTMLElement
+        const chartContainer = chartRef.current.querySelector('div[style*="width: 819px"]') as HTMLElement
         if (chartContainer) {
           if (tipoGraficoPDF === 'torta') {
             await new Promise(resolve => setTimeout(resolve, 1500))
@@ -1564,14 +1528,14 @@ export function CaracterizacionReportes() {
 
           const chartDataUrl = await toPng(chartContainer, {
             backgroundColor: '#ffffff',
-            width: isMobile ? 350 : 819,
-            height: isMobile ? 400 : 520,
+            width: 819,
+            height: 520,
             pixelRatio: 3,
             quality: 1.0,
             cacheBust: true,
             style: {
-              width: `${isMobile ? 350 : 819}px`,
-              height: `${isMobile ? 400 : 520}px`,
+              width: `819px`,
+              height: `520px`,
               backgroundColor: '#ffffff',
               display: 'block',
               position: 'relative'
@@ -1580,7 +1544,7 @@ export function CaracterizacionReportes() {
           
           const maxImgWidth = 180
           const maxImgHeight = 120
-          const imgAspectRatio = (isMobile ? 350 : 819) / (isMobile ? 400 : 520)
+          const imgAspectRatio = 819 / 520
           
           let imgWidth = maxImgWidth
           let imgHeight = maxImgWidth / imgAspectRatio
@@ -2013,25 +1977,21 @@ export function CaracterizacionReportes() {
             </div>
           </div>
 
-          {/* Botones de descarga de gráfico MEJORADOS - Responsive */}
+          {/* Botones de descarga de gráfico - MEJORADOS con dimensiones fijas */}
           <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
             <span className="text-sm font-medium text-muted-foreground mr-2 self-center responsive-small-text">Descargar gráfico:</span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
-              <Button onClick={() => descargarGrafico('png')} variant="outline" size="sm" className="w-full">
-                <FileImage className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">PNG</span>
-                <span className="sm:hidden">PNG</span>
-              </Button>
-              <Button onClick={() => descargarGrafico('jpeg')} variant="outline" size="sm" className="w-full">
-                <FileImage className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">JPEG</span>
-                <span className="sm:hidden">JPG</span>
-              </Button>
-              <Button onClick={() => descargarGrafico('svg')} variant="outline" size="sm" className="w-full">
-                <FileImage className="w-4 h-4 mr-2" />
-                SVG
-              </Button>
-            </div>
+            <Button onClick={() => descargarGrafico('png')} variant="outline" size="sm">
+              <FileImage className="w-4 h-4 mr-2" />
+              PNG
+            </Button>
+            <Button onClick={() => descargarGrafico('jpeg')} variant="outline" size="sm">
+              <FileImage className="w-4 h-4 mr-2" />
+              JPEG
+            </Button>
+            <Button onClick={() => descargarGrafico('svg')} variant="outline" size="sm">
+              <FileImage className="w-4 h-4 mr-2" />
+              SVG
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -2152,8 +2112,8 @@ export function CaracterizacionReportes() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 responsive-container">
-          {/* Descargar datos de tabla */}
-          <div className="p-4 border rounded-lg space-y-3">
+          {/* Descargar datos de tabla - MEJORADO con diseño de autosustentabilidad */}
+          <div className="p-4 border rounded-lg space-y-3 bg-card">
             <h4 className="font-medium flex items-center gap-2 responsive-text">
               <FileSpreadsheet className="w-4 h-4" />
               Datos de la tabla filtrada
@@ -2165,11 +2125,10 @@ export function CaracterizacionReportes() {
               <Button 
                 onClick={() => exportarCSV(
                   getDatosTablaSeccion(),
-                  `tabla_${tipoTabla}`
+                  `tabla_caracterizacion_${tipoTabla}`
                 )} 
                 variant="outline" 
                 size="sm"
-                className="flex-1 sm:flex-none"
               >
                 <Download className="w-4 h-4 mr-2" />
                 CSV
@@ -2177,24 +2136,21 @@ export function CaracterizacionReportes() {
               <Button 
                 onClick={() => exportarExcel(
                   getDatosTablaSeccion(),
-                  `tabla_${tipoTabla}`
+                  `tabla_caracterizacion_${tipoTabla}`
                 )} 
                 variant="outline" 
                 size="sm"
-                className="flex-1 sm:flex-none"
               >
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">XLSX</span>
-                <span className="sm:hidden">Excel</span>
+                XLSX
               </Button>
               <Button 
                 onClick={() => exportarJSON(
                   getDatosTablaSeccion(),
-                  `tabla_${tipoTabla}`
+                  `tabla_caracterizacion_${tipoTabla}`
                 )} 
                 variant="outline" 
                 size="sm"
-                className="flex-1 sm:flex-none"
               >
                 <FileJson className="w-4 h-4 mr-2" />
                 JSON
@@ -2202,8 +2158,8 @@ export function CaracterizacionReportes() {
             </div>
           </div>
 
-          {/* Descargar datos completos de la BD */}
-          <div className="p-4 border rounded-lg space-y-3">
+          {/* Descargar datos completos de la BD - MEJORADO con diseño de autosustentabilidad */}
+          <div className="p-4 border rounded-lg space-y-3 bg-card">
             <h4 className="font-medium flex items-center gap-2 responsive-text">
               <FileSpreadsheet className="w-4 h-4" />
               Datos completos de la base de datos
@@ -2212,24 +2168,23 @@ export function CaracterizacionReportes() {
               Exporta todos los registros filtrados ({caracterizacionFiltrada.length}) con nombres de campos correctos
             </p>
             <div className="flex flex-wrap gap-2 responsive-buttons">
-              <Button onClick={() => exportarCSV(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Button onClick={() => exportarCSV(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 CSV
               </Button>
-              <Button onClick={() => exportarExcel(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Button onClick={() => exportarExcel(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm">
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">XLSX</span>
-                <span className="sm:hidden">Excel</span>
+                XLSX
               </Button>
-              <Button onClick={() => exportarJSON(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Button onClick={() => exportarJSON(getDatosDBConNombresCorrectos(), "bd_caracterizacion")} variant="outline" size="sm">
                 <FileJson className="w-4 h-4 mr-2" />
                 JSON
               </Button>
             </div>
           </div>
 
-          {/* Descargar PDF/Word */}
-          <div className="p-4 border rounded-lg space-y-3">
+          {/* Descargar PDF/Word - MEJORADO con diseño de autosustentabilidad */}
+          <div className="p-4 border rounded-lg space-y-3 bg-card">
             <h4 className="font-medium flex items-center gap-2 responsive-text">
               <FileText className="w-4 h-4" />
               Reporte completo (PDF / Word)
