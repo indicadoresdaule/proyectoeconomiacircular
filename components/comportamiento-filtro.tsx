@@ -55,14 +55,9 @@ export function ComportamientoFiltro({ datos, onFiltrar }: FiltroProps) {
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-bold text-foreground">Filtros</h3>
         {hayFiltrosActivos && (
-          <Button
-            onClick={limpiarFiltros}
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-          >
+          <Button onClick={limpiarFiltros} variant="ghost" size="sm" className="text-destructive">
             <X className="h-4 w-4 mr-2" />
-            Limpiar Filtros
+            Limpiar
           </Button>
         )}
       </div>
