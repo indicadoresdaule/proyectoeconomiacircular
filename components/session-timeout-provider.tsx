@@ -58,7 +58,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
 
   const { showWarning, remainingTime, extendSession, logout, cleanupAllTimers } = useInactivityTimeout({
     timeoutMinutes: 30,
-    warningMinutes: 25,
+    warningMinutes: 5,
   })
 
   useEffect(() => {
