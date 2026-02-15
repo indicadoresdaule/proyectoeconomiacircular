@@ -407,7 +407,7 @@ const normalizarValorLikert = (valor: string): string => {
 const formatearPorcentaje = (valor: number): string => {
   const redondeado = Math.round(valor * 100) / 100 // Redondear a 2 decimales
   const esEntero = Math.abs(redondeado - Math.round(redondeado)) < 0.001
-  
+
   if (esEntero) {
     return `${Math.round(redondeado)}%`
   }
@@ -418,7 +418,7 @@ const formatearPorcentaje = (valor: number): string => {
 const formatearPorcentajeGrafico = (valor: number): string => {
   const redondeado = Math.round(valor * 10) / 10 // Redondear a 1 decimal
   const esEntero = Math.abs(redondeado - Math.round(redondeado)) < 0.01
-  
+
   if (esEntero) {
     return `${Math.round(redondeado)}%`
   }
@@ -456,16 +456,16 @@ const splitLabelForRotation = (text: string) => {
   if (text === "De acuerdo") {
     return { firstPart: text, lastWord: "", isSingleWord: true }
   }
-  
+
   const words = text.split(' ')
-  
+
   if (words.length <= 1) {
     return { firstPart: text, lastWord: "", isSingleWord: true }
   }
-  
+
   const lastWord = words[words.length - 1]
   const firstPart = words.slice(0, -1).join(' ')
-  
+
   return { firstPart, lastWord, isSingleWord: false }
 }
 
@@ -473,7 +473,7 @@ const splitLabelForRotation = (text: string) => {
 const CustomRotatedTick = (props: any) => {
   const { x, y, payload, esMovil } = props
   const { firstPart, lastWord, isSingleWord } = splitLabelForRotation(payload.value)
-  
+
   // Si es una sola palabra (incluye "De acuerdo" o palabras únicas)
   if (isSingleWord) {
     return (
@@ -491,7 +491,7 @@ const CustomRotatedTick = (props: any) => {
       </g>
     )
   }
-  
+
   // Para múltiples palabras (excepto "De acuerdo")
   return (
     <g transform={`translate(${x},${y}) rotate(-45)`}>
@@ -534,10 +534,10 @@ interface GraficoReusableProps {
   exportMode?: boolean // Para controlar el modo de exportación (ajustes para PDF)
 }
 
-const GraficoReusable: React.FC<GraficoReusableProps> = ({ 
-  datos, 
-  tipo, 
-  tituloX = "Respuestas", 
+const GraficoReusable: React.FC<GraficoReusableProps> = ({
+  datos,
+  tipo,
+  tituloX = "Respuestas",
   tituloY = "Cantidad",
   colors = COLORS,
   esMovil = false,
@@ -562,47 +562,47 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
     return (
       <div className="flex justify-center items-center">
         <div style={{ width: chartWidth, height: chartHeight }}>
-          <BarChart 
+          <BarChart
             width={chartWidth}
             height={chartHeight}
-            data={datos} 
-            margin={{ 
+            data={datos}
+            margin={{
               top: 45,
-              right: 60, 
-              left: anchoEjeY, 
-              bottom: 90 
+              right: 60,
+              left: anchoEjeY,
+              bottom: 90
             }}
             barSize={100}
             barGap={9}
           >
-            <CartesianGrid 
+            {/* <CartesianGrid 
               strokeDasharray="3 3" 
               stroke="#e5e7eb" 
               vertical={false}
-            />
-            <XAxis 
-              dataKey="name" 
+            />*/}
+            <XAxis
+              dataKey="name"
               height={90}
               tick={<CustomRotatedTick esMovil={esMovil} />}
               interval={0}
               axisLine={{ stroke: "#d1d5db" }}
               tickLine={{ stroke: "#d1d5db" }}
             />
-            <YAxis 
-              fontSize={esMovil ? 9 : 12} 
+            <YAxis
+              fontSize={esMovil ? 9 : 12}
               tick={{ fill: "#4b5563" }}
               axisLine={{ stroke: "#d1d5db" }}
               tickLine={{ stroke: "#d1d5db" }}
               width={anchoEjeY}
             />
             <Tooltip content={<CustomTooltip esMovil={esMovil} />} />
-            <Bar 
-              dataKey="value" 
+            <Bar
+              dataKey="value"
               radius={[3, 3, 0, 0]}
               label={(props) => {
                 const { x, y, width, value, index } = props
                 const porcentaje = datos[index]?.porcentaje || 0
-                
+
                 return (
                   <g>
                     <text
@@ -621,7 +621,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                       textAnchor="middle"
                       fontSize={esMovil ? 9 : 11}
                       fontWeight="500"
-                      fill="#059669"
+                      fill="#ff0000"
                     >
                       {`${formatearPorcentajeGrafico(porcentaje)}`}
                     </text>
@@ -630,10 +630,10 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
               }}
             >
               {datos.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={colors[index % colors.length].bg} 
-                  stroke={colors[index % colors.length].border} 
+                <Cell
+                  key={`cell-${index}`}
+                  fill={colors[index % colors.length].bg}
+                  stroke={colors[index % colors.length].border}
                   strokeWidth={2}
                 />
               ))}
@@ -657,21 +657,21 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
               label={(props) => {
                 // Mostrar etiquetas directamente en el gráfico circular para exportación
                 if (!showLabelsOnPie) return null
-                
+
                 const { x, y, text, payload } = props
                 const porcentaje = payload?.porcentaje ?? 0
                 const value = payload?.value ?? 0
-                
+
                 // Mostrar etiqueta si el porcentaje es mayor al 2%
                 if (porcentaje < 2) return null
-                
+
                 // Para modo exportación, usar etiquetas más claras
                 if (exportMode) {
                   // Calcular posición para que las etiquetas queden alrededor del gráfico
                   const angle = Math.atan2(y - chartHeight / 2, x - chartWidth / 2) * 180 / Math.PI
                   const isLeftSide = x < chartWidth / 2
                   const labelX = isLeftSide ? x - 40 : x + 40
-                  
+
                   return (
                     <g>
                       <text
@@ -690,7 +690,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                         textAnchor={isLeftSide ? "end" : "start"}
                         fontSize={8}
                         fontWeight="500"
-                        fill="#059669"
+                        fill="#ff0000"
                       >
                         {`${formatearPorcentajeGrafico(porcentaje)}`}
                       </text>
@@ -711,7 +711,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                   const angle = Math.atan2(y - chartHeight / 2, x - chartWidth / 2) * 180 / Math.PI
                   const isLeftSide = x < chartWidth / 2
                   const labelX = isLeftSide ? x - 40 : x + 40
-                  
+
                   return (
                     <g>
                       <text
@@ -730,20 +730,11 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                         textAnchor={isLeftSide ? "end" : "start"}
                         fontSize={8}
                         fontWeight="500"
-                        fill="#059669"
+                        fill="#ff0000"
                       >
                         {`${formatearPorcentajeGrafico(porcentaje)}`}
                       </text>
-                      <text
-                        x={labelX}
-                        y={y + 19}
-                        textAnchor={isLeftSide ? "end" : "start"}
-                        fontSize={8}
-                        fontWeight="400"
-                        fill="#6b7280"
-                      >
-                        {payload.name}
-                      </text>
+
                     </g>
                   )
                 }
@@ -754,16 +745,16 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
               paddingAngle={2}
             >
               {datos.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={SOLID_COLORS[index % SOLID_COLORS.length]} 
-                  stroke="#fff" 
+                <Cell
+                  key={`cell-${index}`}
+                  fill={SOLID_COLORS[index % SOLID_COLORS.length]}
+                  stroke="#fff"
                   strokeWidth={2}
                 />
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip esMovil={esMovil} />} />
-            <Legend 
+            <Legend
               verticalAlign="middle"
               align="right"
               layout="vertical"
@@ -791,34 +782,34 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
     return (
       <div className="flex justify-center items-center">
         <div style={{ width: chartWidth, height: chartHeight }}>
-          <LineChart 
+          <LineChart
             width={chartWidth}
             height={chartHeight}
-            data={datos} 
-            margin={{ 
+            data={datos}
+            margin={{
               top: 55,
-              right: 60, 
-              left: Math.max(40, anchoEjeY - 10), 
-              bottom: 90 
+              right: 60,
+              left: Math.max(40, anchoEjeY - 10),
+              bottom: 90
             }}
           >
-            <CartesianGrid 
+            {/* <CartesianGrid 
               strokeDasharray="3 3" 
               stroke="#e5e7eb" 
               vertical={false}
-            />
-            <XAxis 
-              dataKey="name" 
+            />*/}
+            <XAxis
+              dataKey="name"
               height={90}
               tick={<CustomRotatedTick esMovil={esMovil} />}
               interval={0}
               axisLine={{ stroke: "#d1d5db" }}
               tickLine={{ stroke: "#d1d5db" }}
               scale="point"
-              padding={{left:20, right:20}}
+              padding={{ left: 20, right: 20 }}
             />
-            <YAxis 
-              fontSize={esMovil ? 9 : 12} 
+            <YAxis
+              fontSize={esMovil ? 9 : 12}
               tick={{ fill: "#4b5563" }}
               axisLine={{ stroke: "#d1d5db" }}
               tickLine={{ stroke: "#d1d5db" }}
@@ -834,7 +825,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                 const { cx, cy, payload, index } = props
                 const dotColor = SOLID_COLORS[index % SOLID_COLORS.length]
                 const porcentaje = datos[index]?.porcentaje || 0
-                
+
                 return (
                   <g key={`dot-${payload.name}`}>
                     <circle
@@ -862,7 +853,7 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                         textAnchor="middle"
                         fontSize={9}
                         fontWeight="500"
-                        fill="#059669"
+                        fill="#ff0000"
                       >
                         {`${formatearPorcentajeGrafico(porcentaje)}`}
                       </text>
@@ -870,10 +861,10 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
                   </g>
                 )
               }}
-              activeDot={{ 
-                r: 8, 
-                stroke: "#fff", 
-                strokeWidth: 2 
+              activeDot={{
+                r: 8,
+                stroke: "#fff",
+                strokeWidth: 2
               }}
             />
           </LineChart>
@@ -889,9 +880,9 @@ const GraficoReusable: React.FC<GraficoReusableProps> = ({
 const obtenerTextoSelector = (seccionSeleccionada: string, grupoSeleccionado: string, esMovil: boolean) => {
   const seccion = SECCIONES[seccionSeleccionada as keyof typeof SECCIONES]
   const grupo = seccion?.grupos[grupoSeleccionado as keyof typeof seccion.grupos]
-  
+
   if (!grupo) return "Seleccionar variable"
-  
+
   // Para móvil, mostrar desde el signo de pregunta hasta donde alcance
   if (esMovil && seccionSeleccionada !== "distribucion-demografica") {
     const preguntaCompleta = grupo.nombre
@@ -904,7 +895,7 @@ const obtenerTextoSelector = (seccionSeleccionada: string, grupoSeleccionado: st
       return textoDesdePregunta
     }
   }
-  
+
   return grupo.nombre
 }
 
@@ -923,8 +914,8 @@ const calcularAnchoEjeY = (datos: DatoGrafico[], esMovil: boolean) => {
 
 // Función para capturar imagen del gráfico con dimensiones específicas - CORREGIDA
 const capturarImagenGrafico = async (
-  tipoGraficoCapturar: "barras" | "torta" | "lineal", 
-  datosGrafico: DatoGrafico[], 
+  tipoGraficoCapturar: "barras" | "torta" | "lineal",
+  datosGrafico: DatoGrafico[],
   showLabels = true
 ) => {
   try {
@@ -938,50 +929,50 @@ const capturarImagenGrafico = async (
     tempDiv.style.backgroundColor = '#ffffff'
     tempDiv.style.zIndex = '9999'
     document.body.appendChild(tempDiv)
-    
+
     // Renderizar el gráfico en el elemento temporal usando React 18
     const ReactDOM = await import('react-dom/client')
     const React = await import('react')
-    
+
     // Componente temporal para gráfico - MEJORADO para gráfico circular con leyendas y etiquetas
     const GraficoTemporal = () => {
-      return React.createElement('div', { 
-        style: { 
-          width: '819px', 
+      return React.createElement('div', {
+        style: {
+          width: '819px',
           height: '520px',
           backgroundColor: '#ffffff',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center'
         }
-      }, 
-      React.createElement('div', {
-        style: {
-          width: '819px',
-          height: '520px'
-        }
       },
-      React.createElement(GraficoReusable, {
-        datos: datosGrafico,
-        tipo: tipoGraficoCapturar,
-        tituloX: "Respuestas",
-        tituloY: "Cantidad",
-        colors: COLORS,
-        esMovil: false,
-        isLandscape: false,
-        showLabelsOnPie: showLabels,
-        exportMode: true // Usar modo exportación para gráfico circular
-      })))
+        React.createElement('div', {
+          style: {
+            width: '819px',
+            height: '520px'
+          }
+        },
+          React.createElement(GraficoReusable, {
+            datos: datosGrafico,
+            tipo: tipoGraficoCapturar,
+            tituloX: "Respuestas",
+            tituloY: "Cantidad",
+            colors: COLORS,
+            esMovil: false,
+            isLandscape: false,
+            showLabelsOnPie: showLabels,
+            exportMode: true // Usar modo exportación para gráfico circular
+          })))
     }
-    
+
     // Crear root y renderizar con React 18
     const root = ReactDOM.createRoot(tempDiv)
     root.render(React.createElement(GraficoTemporal))
-    
+
     // Aumentar el tiempo de espera para gráfico circular (necesita más tiempo para renderizar leyendas)
     const tiempoEspera = tipoGraficoCapturar === "torta" ? 2500 : 2000
     await new Promise(resolve => setTimeout(resolve, tiempoEspera))
-    
+
     // Capturar la imagen
     const chartDataUrl = await toPng(tempDiv.firstChild as HTMLElement, {
       backgroundColor: '#ffffff',
@@ -998,11 +989,11 @@ const capturarImagenGrafico = async (
         position: 'relative'
       }
     })
-    
+
     // Limpiar
     root.unmount()
     document.body.removeChild(tempDiv)
-    
+
     return chartDataUrl
   } catch (error) {
     console.error('Error capturando gráfico:', error)
@@ -1015,22 +1006,22 @@ export function AutosustentabilidadReportes() {
   const [datos, setDatos] = useState<any[]>([])
   const [datosFiltrados, setDatosFiltrados] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // Filtros
   const [estadoCivil, setEstadoCivil] = useState("todos")
   const [nivelEducacion, setNivelEducacion] = useState("todos")
   const [situacionLaboral, setSituacionLaboral] = useState("todos")
   const [ingresoMensual, setIngresoMensual] = useState("todos")
-  
+
   // Selección de sección y pregunta
   const [seccionSeleccionada, setSeccionSeleccionada] = useState("distribucion-demografica")
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("grupos-edad")
   const [tipoGrafico, setTipoGrafico] = useState<"barras" | "torta" | "lineal">("barras")
-  
+
   // Responsive
   const [esMovil, setEsMovil] = useState(false)
   const [isLandscape, setIsLandscape] = useState(false)
-  
+
   // Estados para configuración de PDF/Word - MEJORADO
   const [seccionesIncluidas, setSeccionesIncluidas] = useState<string[]>([Object.keys(SECCIONES)[0]])
   const [preguntasPorSeccion, setPreguntasPorSeccion] = useState<Record<string, string[]>>({})
@@ -1046,27 +1037,12 @@ export function AutosustentabilidadReportes() {
 
   // Inicializar preguntas por sección - MODIFICADO para incluir TODAS las preguntas de Distribución Demográfica
   useEffect(() => {
-    const inicialPreguntas: Record<string, string[]> = {}
-    Object.keys(SECCIONES).forEach(seccionKey => {
-      const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
-      // Para distribución demográfica, inicializar con TODAS las 6 preguntas
-      if (seccionKey === "distribucion-demografica") {
-        const gruposFiltrados = Object.entries(seccion.grupos)
-          .filter(([key, grupo]) => key !== "todos")
-        inicialPreguntas[seccionKey] = gruposFiltrados.map(([key]) => key)
-      } else {
-        // Para otras secciones, inicializar con la primera pregunta
-        const gruposFiltrados = Object.entries(seccion.grupos)
-          .filter(([key, grupo]) => key !== "todos")
-        if (gruposFiltrados.length > 0) {
-          inicialPreguntas[seccionKey] = [gruposFiltrados[0][0]]
-        } else {
-          inicialPreguntas[seccionKey] = []
-        }
-      }
-    })
-    setPreguntasPorSeccion(inicialPreguntas)
-  }, [])
+  const inicialPreguntas: Record<string, string[]> = {}
+  Object.keys(SECCIONES).forEach(seccionKey => {
+    const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
+    setSeccionesIncluidas([])
+  })
+}, [])
 
   useEffect(() => {
     cargarDatos()
@@ -1095,7 +1071,7 @@ export function AutosustentabilidadReportes() {
 
       setDatos(data || [])
       setDatosFiltrados(data || [])
-      
+
       // Establecer grupo inicial
       const seccion = SECCIONES["distribucion-demografica"]
       if (seccion && Object.keys(seccion.grupos).length > 0) {
@@ -1113,22 +1089,22 @@ export function AutosustentabilidadReportes() {
     let resultados = [...datos]
 
     if (estadoCivil !== "todos") {
-      resultados = resultados.filter((d) => 
+      resultados = resultados.filter((d) =>
         d.estado_civil?.toLowerCase().trim() === estadoCivil.toLowerCase().trim()
       )
     }
     if (nivelEducacion !== "todos") {
-      resultados = resultados.filter((d) => 
+      resultados = resultados.filter((d) =>
         d.educacion_jefe_hogar?.toLowerCase().trim() === nivelEducacion.toLowerCase().trim()
       )
     }
     if (situacionLaboral !== "todos") {
-      resultados = resultados.filter((d) => 
+      resultados = resultados.filter((d) =>
         d.situacion_laboral_jefe_hogar?.toLowerCase().trim() === situacionLaboral.toLowerCase().trim()
       )
     }
     if (ingresoMensual !== "todos") {
-      resultados = resultados.filter((d) => 
+      resultados = resultados.filter((d) =>
         d.ingreso_mensual_jefe_hogar?.toLowerCase().trim() === ingresoMensual.toLowerCase().trim()
       )
     }
@@ -1151,26 +1127,26 @@ export function AutosustentabilidadReportes() {
     setIngresoMensual("todos")
   }
 
-  const hayFiltrosActivos = estadoCivil !== "todos" || nivelEducacion !== "todos" || 
-                           situacionLaboral !== "todos" || ingresoMensual !== "todos"
+  const hayFiltrosActivos = estadoCivil !== "todos" || nivelEducacion !== "todos" ||
+    situacionLaboral !== "todos" || ingresoMensual !== "todos"
 
   // Función para procesar datos de TODAS las preguntas de una sección
   const procesarDatosTodos = (seccionKey: string) => {
     const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
     if (!seccion) return []
-    
+
     const opcionesLikert = ["Totalmente desacuerdo", "Desacuerdo", "Indiferente", "De acuerdo", "Totalmente de acuerdo"]
-    const resultados: Array<{name: string, value: number, porcentaje: number}> = []
-    
+    const resultados: Array<{ name: string, value: number, porcentaje: number }> = []
+
     Object.entries(seccion.grupos).forEach(([key, grupo]) => {
       if (grupo.esTodos) return // Saltar la opción "todos"
-      
+
       // Calcular respuestas para cada opción Likert
       const conteos: Record<string, number> = {}
       opcionesLikert.forEach((opcion) => {
         conteos[opcion] = 0
       })
-      
+
       const totalEncuestas = datosFiltrados.length
       datosFiltrados.forEach((registro) => {
         const valor = registro[grupo.campo]
@@ -1181,15 +1157,15 @@ export function AutosustentabilidadReportes() {
           }
         }
       })
-      
+
       // Sumar todas las respuestas de esta pregunta
       const totalRespuestas = Object.values(conteos).reduce((sum, val) => sum + val, 0)
-      
+
       // Agregar cada opción Likert al resultado
       opcionesLikert.forEach((opcion) => {
         const valor = conteos[opcion]
         const porcentaje = totalRespuestas > 0 ? (valor / totalRespuestas) * 100 : 0
-        
+
         // Buscar si ya existe esta opción en resultados
         const existente = resultados.find(r => r.name === opcion)
         if (existente) {
@@ -1205,7 +1181,7 @@ export function AutosustentabilidadReportes() {
         }
       })
     })
-    
+
     return resultados
   }
 
@@ -1213,27 +1189,27 @@ export function AutosustentabilidadReportes() {
   const procesarDatosSeleccionados = (seccionKey: string, preguntaKeys: string[]) => {
     const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
     if (!seccion || preguntaKeys.length === 0) return []
-    
+
     const opcionesLikert = ["Totalmente desacuerdo", "Desacuerdo", "Indiferente", "De acuerdo", "Totalmente de acuerdo"]
-    const resultados: Array<{name: string, value: number, porcentaje: number}> = []
-    
+    const resultados: Array<{ name: string, value: number, porcentaje: number }> = []
+
     // Calcular total de respuestas para todas las preguntas seleccionadas
     let totalTodasRespuestas = 0
     const conteosTotales: Record<string, number> = {}
     opcionesLikert.forEach((opcion) => {
       conteosTotales[opcion] = 0
     })
-    
+
     // Procesar cada pregunta seleccionada
     preguntaKeys.forEach((preguntaKey) => {
       const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
       if (!grupo || grupo.esTodos) return
-      
+
       const conteos: Record<string, number> = {}
       opcionesLikert.forEach((opcion) => {
         conteos[opcion] = 0
       })
-      
+
       const totalEncuestas = datosFiltrados.length
       datosFiltrados.forEach((registro) => {
         const valor = registro[grupo.campo]
@@ -1245,23 +1221,23 @@ export function AutosustentabilidadReportes() {
           }
         }
       })
-      
+
       const totalRespuestas = Object.values(conteos).reduce((sum, val) => sum + val, 0)
       totalTodasRespuestas += totalRespuestas
     })
-    
+
     // Crear resultados combinados
     opcionesLikert.forEach((opcion) => {
       const valor = conteosTotales[opcion]
       const porcentaje = totalTodasRespuestas > 0 ? (valor / totalTodasRespuestas) * 100 : 0
-      
+
       resultados.push({
         name: opcion,
         value: valor,
         porcentaje: porcentaje
       })
     })
-    
+
     return resultados
   }
 
@@ -1271,31 +1247,31 @@ export function AutosustentabilidadReportes() {
     const seccionesNoDemograficas = seccionesIncluidas.filter(
       seccionKey => seccionKey !== "distribucion-demografica"
     )
-    
+
     if (seccionesNoDemograficas.length === 0) return []
-    
+
     const opcionesLikert = ["Totalmente desacuerdo", "Desacuerdo", "Indiferente", "De acuerdo", "Totalmente de acuerdo"]
     const conteosTotales: Record<string, number> = {}
     opcionesLikert.forEach((opcion) => {
       conteosTotales[opcion] = 0
     })
-    
+
     let totalTodasRespuestas = 0
-    
+
     // Procesar cada sección y sus preguntas seleccionadas
     seccionesNoDemograficas.forEach(seccionKey => {
       const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
       const preguntasSeleccionadas = preguntasPorSeccion[seccionKey] || []
-      
+
       preguntasSeleccionadas.forEach(preguntaKey => {
         const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
         if (!grupo || grupo.esTodos) return
-        
+
         const conteos: Record<string, number> = {}
         opcionesLikert.forEach((opcion) => {
           conteos[opcion] = 0
         })
-        
+
         datosFiltrados.forEach((registro) => {
           const valor = registro[grupo.campo]
           if (valor && typeof valor === "string") {
@@ -1306,19 +1282,19 @@ export function AutosustentabilidadReportes() {
             }
           }
         })
-        
+
         const totalRespuestas = Object.values(conteos).reduce((sum, val) => sum + val, 0)
         totalTodasRespuestas += totalRespuestas
       })
     })
-    
+
     // Crear datos del gráfico
     const datosGrafico = opcionesLikert.map((opcion) => ({
       name: opcion,
       value: conteosTotales[opcion],
       porcentaje: totalTodasRespuestas > 0 ? (conteosTotales[opcion] / totalTodasRespuestas) * 100 : 0
     }))
-    
+
     return datosGrafico
   }
 
@@ -1416,7 +1392,7 @@ export function AutosustentabilidadReportes() {
 
     return Object.entries(seccion.grupos).map(([key, grupo]) => {
       if (grupo.esTodos) return null // Saltar la opción "todos"
-      
+
       if (grupo.esGruposEdad && grupo.camposEdad) {
         const conteos: Record<string, number> = {}
 
@@ -1490,7 +1466,7 @@ export function AutosustentabilidadReportes() {
 
     return Object.entries(seccion.grupos).map(([key, grupo]) => {
       if (grupo.esTodos) return null // Saltar la opción "todos"
-      
+
       const opcionesLikert = ["Totalmente desacuerdo", "Desacuerdo", "Indiferente", "De acuerdo", "Totalmente de acuerdo"]
 
       // Contar cuántas veces aparece cada opción
@@ -1542,7 +1518,7 @@ export function AutosustentabilidadReportes() {
         headers.map((header) => {
           const value = row[header]
           if (value === null || value === undefined) return ""
-          if (typeof value === "string" && (value.includes(",") || value.includes('"'))) 
+          if (typeof value === "string" && (value.includes(",") || value.includes('"')))
             return `"${value.replace(/"/g, '""')}"`
           return value
         }).join(",")
@@ -1596,7 +1572,7 @@ export function AutosustentabilidadReportes() {
     try {
       const chartWidth = 819
       const chartHeight = 520
-      
+
       // Obtener el contenedor específico del gráfico
       const chartContainer = chartRef.current.querySelector('div[style*="width: 819px"]') as HTMLElement
       if (!chartContainer) {
@@ -1604,27 +1580,58 @@ export function AutosustentabilidadReportes() {
         return
       }
 
-      let dataUrl: string
-      const options = {
-        backgroundColor: '#ffffff',
-        width: chartWidth,
-        height: chartHeight,
-        pixelRatio: 3, // Alta calidad
-        style: {
-          width: `${chartWidth}px`,
-          height: `${chartHeight}px`,
-          display: 'block',
-          position: 'absolute'
-        }
+      // Asegurarnos de que el contenedor tenga dimensiones correctas
+      chartContainer.style.width = `${chartWidth}px`
+      chartContainer.style.height = `${chartHeight}px`
+      chartContainer.style.display = 'block'
+      chartContainer.style.position = 'relative'
+
+      // Establecer fondo según el formato
+      if (formato === 'png') {
+        chartContainer.style.backgroundColor = 'transparent'
+      } else if (formato === 'jpeg') {
+        chartContainer.style.backgroundColor = '#ffffff'
       }
+
+      let dataUrl: string
 
       switch (formato) {
         case 'png':
-          dataUrl = await toPng(chartContainer, options)
+          dataUrl = await toPng(chartContainer, {
+            backgroundColor: null, // Fondo transparente para PNG
+            width: chartWidth,
+            height: chartHeight,
+            pixelRatio: 3,
+            quality: 1.0,
+            cacheBust: true,
+            style: {
+              width: `${chartWidth}px`,
+              height: `${chartHeight}px`,
+              display: 'block',
+              position: 'relative',
+              backgroundColor: 'transparent'
+            }
+          })
           break
+
         case 'jpeg':
-          dataUrl = await toJpeg(chartContainer, { ...options, quality: 0.95 })
+          dataUrl = await toJpeg(chartContainer, {
+            backgroundColor: '#ffffff', // Fondo blanco para JPEG
+            width: chartWidth,
+            height: chartHeight,
+            pixelRatio: 3,
+            quality: 0.95,
+            cacheBust: true,
+            style: {
+              width: `${chartWidth}px`,
+              height: `${chartHeight}px`,
+              display: 'block',
+              position: 'relative',
+              backgroundColor: '#ffffff'
+            }
+          })
           break
+
         case 'svg':
           // Para SVG, obtenemos el elemento SVG directamente
           const svgElement = chartContainer.querySelector('svg')
@@ -1632,19 +1639,19 @@ export function AutosustentabilidadReportes() {
             console.error('No se encontró el elemento SVG')
             return
           }
-          
+
           // Clonamos el SVG y establecemos dimensiones fijas
           const svgClone = svgElement.cloneNode(true) as SVGElement
           svgClone.setAttribute('width', chartWidth.toString())
           svgClone.setAttribute('height', chartHeight.toString())
           svgClone.setAttribute('viewBox', `0 0 ${chartWidth} ${chartHeight}`)
-          
+
           const serializer = new XMLSerializer()
           const svgString = serializer.serializeToString(svgClone)
-          
+
           // Añadir declaración XML
           const svgWithHeader = '<?xml version="1.0" standalone="no"?>\r\n' + svgString
-          
+
           const blob = new Blob([svgWithHeader], { type: 'image/svg+xml;charset=utf-8' })
           const link = document.createElement('a')
           link.download = `grafico_autosustentabilidad_${tipoGrafico}_${new Date().toISOString().slice(0, 10)}.svg`
@@ -1652,17 +1659,32 @@ export function AutosustentabilidadReportes() {
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
+
+          // Limpiar
+          setTimeout(() => URL.revokeObjectURL(link.href), 1000)
           return
+
         default:
-          dataUrl = await toPng(chartContainer, options)
+          dataUrl = await toPng(chartContainer, {
+            backgroundColor: null,
+            width: chartWidth,
+            height: chartHeight,
+            pixelRatio: 3,
+            quality: 1.0,
+            cacheBust: true
+          })
       }
-      
+
       const link = document.createElement('a')
       link.download = `grafico_autosustentabilidad_${tipoGrafico}_${new Date().toISOString().slice(0, 10)}.${formato}`
       link.href = dataUrl
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+
+      // Restaurar estilo original del contenedor
+      chartContainer.style.backgroundColor = ''
+
     } catch (error) {
       console.error('Error al descargar el gráfico:', error)
       alert('Error al descargar el gráfico. Inténtalo de nuevo.')
@@ -1672,7 +1694,7 @@ export function AutosustentabilidadReportes() {
   // Preparar datos de tabla para descarga
   const getDatosTablaSeccion = () => {
     const resultado: any[] = []
-    
+
     if (seccionSeleccionada === "distribucion-demografica") {
       tablasSeccion?.forEach(tabla => {
         tabla.datos.forEach(resp => {
@@ -1698,14 +1720,14 @@ export function AutosustentabilidadReportes() {
         })
       })
     }
-    
+
     return resultado
   }
 
   // Funciones para manejar la selección de preguntas
   const toggleSeccion = (seccionKey: string) => {
-    setSeccionesIncluidas(prev => 
-      prev.includes(seccionKey) 
+    setSeccionesIncluidas(prev =>
+      prev.includes(seccionKey)
         ? prev.filter(s => s !== seccionKey)
         : [...prev, seccionKey]
     )
@@ -1717,7 +1739,7 @@ export function AutosustentabilidadReportes() {
       const nuevasPreguntas = currentPreguntas.includes(preguntaKey)
         ? currentPreguntas.filter(p => p !== preguntaKey)
         : [...currentPreguntas, preguntaKey]
-      
+
       return {
         ...prev,
         [seccionKey]: nuevasPreguntas
@@ -1728,11 +1750,11 @@ export function AutosustentabilidadReportes() {
   const seleccionarTodasPreguntas = (seccionKey: string) => {
     const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
     if (!seccion) return
-    
+
     const gruposFiltrados = Object.entries(seccion.grupos)
       .filter(([key, grupo]) => key !== "todos")
       .map(([key]) => key)
-    
+
     setPreguntasPorSeccion(prev => ({
       ...prev,
       [seccionKey]: gruposFiltrados
@@ -1752,10 +1774,10 @@ export function AutosustentabilidadReportes() {
       const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
       const grupo = seccion?.grupos[preguntaKey as keyof typeof seccion.grupos]
       if (!grupo) return null
-      
+
       // Procesar datos para esta pregunta específica - ASEGURAR QUE LOS DATOS ESTÉN COMPLETOS
       let datosPregunta: DatoGrafico[] = []
-      
+
       if (seccionKey === "distribucion-demografica") {
         if (grupo.esGruposEdad && grupo.camposEdad) {
           const conteos: Record<string, number> = {}
@@ -1780,7 +1802,7 @@ export function AutosustentabilidadReportes() {
         } else {
           // Para otras preguntas de distribución demográfica - ASEGURAR TODAS LAS OPCIONES
           const conteos: Record<string, number> = {}
-          
+
           // Inicializar todas las opciones posibles
           grupo.valores?.forEach((valor) => {
             conteos[valor] = 0
@@ -1808,13 +1830,13 @@ export function AutosustentabilidadReportes() {
       } else {
         // Para secciones Likert - ASEGURAR QUE TODAS LAS OPCIONES LIKERT ESTÉN PRESENTES
         const opcionesLikert = [
-          "Totalmente desacuerdo", 
-          "Desacuerdo", 
-          "Indiferente", 
-          "De acuerdo", 
+          "Totalmente desacuerdo",
+          "Desacuerdo",
+          "Indiferente",
+          "De acuerdo",
           "Totalmente de acuerdo"
         ]
-        
+
         const totalEncuestas = datosFiltrados.length
         const conteos: Record<string, number> = {}
 
@@ -1839,16 +1861,16 @@ export function AutosustentabilidadReportes() {
           porcentaje: totalEncuestas > 0 ? ((conteos[name] || 0) / totalEncuestas) * 100 : 0,
         }))
       }
-      
+
       // Asegurarse de que hay datos para mostrar
       if (datosPregunta.length === 0) {
         console.warn(`No hay datos para la pregunta: ${grupo.nombre}`)
         return null
       }
-      
+
       // Generar imagen del gráfico para esta pregunta usando la función capturarImagenGrafico
       const chartDataUrl = await capturarImagenGrafico(tipoGraficoDocumento, datosPregunta, true)
-      
+
       return {
         pregunta: grupo.nombre,
         datos: datosPregunta,
@@ -1864,13 +1886,13 @@ export function AutosustentabilidadReportes() {
   const generarDocumento = async () => {
     try {
       setGenerandoDocumento(true)
-      
+
       if (formatoDescarga === 'pdf') {
         await generarPDF()
       } else {
         await generarWord()
       }
-      
+
       setDialogOpen(false)
     } catch (error) {
       console.error('Error al generar documento:', error)
@@ -1885,7 +1907,7 @@ export function AutosustentabilidadReportes() {
     const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
-    
+
     const marginLeft = 25.4
     const marginTop = 25.4
     const lineHeight = 7
@@ -1906,14 +1928,14 @@ export function AutosustentabilidadReportes() {
     currentY += lineHeight
     pdf.text(`Total de registros: ${datosFiltrados.length}`, marginLeft, currentY)
     currentY += lineHeight
-    
+
     // Filtros aplicados
     const filtrosTexto: string[] = []
     if (estadoCivil !== "todos") filtrosTexto.push(`Estado Civil: ${estadoCivil}`)
     if (nivelEducacion !== "todos") filtrosTexto.push(`Nivel Educación: ${nivelEducacion}`)
     if (situacionLaboral !== "todos") filtrosTexto.push(`Situación Laboral: ${situacionLaboral}`)
     if (ingresoMensual !== "todos") filtrosTexto.push(`Ingreso Mensual: ${ingresoMensual}`)
-    
+
     if (filtrosTexto.length > 0) {
       pdf.text(`Filtros aplicados: ${filtrosTexto.join(', ')}`, marginLeft, currentY)
       currentY += lineHeight
@@ -1928,27 +1950,27 @@ export function AutosustentabilidadReportes() {
           pdf.addPage()
           currentY = marginTop
         }
-        
+
         // Título del gráfico
         pdf.setFont('helvetica', 'bold')
         pdf.setFontSize(11)
         pdf.text("Figura 1: Distribución de respuestas combinadas", marginLeft, currentY)
         currentY += lineHeight
-        
+
         pdf.setFont('helvetica', 'italic')
         pdf.setFontSize(10)
         const textoGrafico = "Gráfico que muestra la distribución agregada de respuestas de todas las preguntas seleccionadas de las secciones no demográficas"
         pdf.text(textoGrafico, marginLeft, currentY, { maxWidth: pageWidth - 2 * marginLeft })
         currentY += lineHeight * 2
-        
+
         // Capturar imagen del gráfico con el tipo seleccionado usando la función capturarImagenGrafico
         const chartDataUrl = await capturarImagenGrafico(tipoGraficoDocumento, datosCombinados, true)
-        
+
         if (chartDataUrl) {
           // Calcular dimensiones para la imagen en el PDF
           const imgWidth = pageWidth - 2 * marginLeft
           const imgHeight = (520 / 819) * imgWidth
-          
+
           // Agregar imagen al PDF
           pdf.addImage(chartDataUrl, 'PNG', marginLeft, currentY, imgWidth, imgHeight)
           currentY += imgHeight + lineHeight * 2
@@ -1966,7 +1988,7 @@ export function AutosustentabilidadReportes() {
     // SOLUCIÓN para problema 1 y 3: Generar gráficos individuales para cada pregunta seleccionada
     let figuraNumero = 2
     let tablaNumero = 1
-    
+
     for (const seccionKey of seccionesIncluidas) {
       const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
       if (!seccion) continue
@@ -1985,7 +2007,7 @@ export function AutosustentabilidadReportes() {
 
       // Obtener preguntas seleccionadas para esta sección
       const preguntasSeleccionadas = preguntasPorSeccion[seccionKey] || []
-      
+
       // Si no hay preguntas seleccionadas en esta sección, continuar
       if (preguntasSeleccionadas.length === 0) {
         pdf.text("No se seleccionaron preguntas para esta sección.", marginLeft, currentY)
@@ -1997,39 +2019,39 @@ export function AutosustentabilidadReportes() {
       for (const preguntaKey of preguntasSeleccionadas) {
         const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
         if (!grupo) continue
-        
+
         // Verificar si necesitamos nueva página
         if (currentY > 120) {
           pdf.addPage()
           currentY = marginTop
         }
-        
+
         // Generar gráfico individual para esta pregunta
         try {
           const graficoIndividual = await generarGraficosIndividuales(seccionKey, preguntaKey)
-          
+
           if (graficoIndividual && graficoIndividual.imagen) {
             // Título del gráfico individual
             pdf.setFont('helvetica', 'bold')
             pdf.setFontSize(11)
             pdf.text(`Figura ${figuraNumero}: ${grupo.nombre}`, marginLeft, currentY)
             currentY += lineHeight
-            
+
             pdf.setFont('helvetica', 'italic')
             pdf.setFontSize(10)
             const textoGrafico = `Gráfico que muestra la distribución de respuestas para: ${grupo.nombre}`
             const lines = pdf.splitTextToSize(textoGrafico, pageWidth - 2 * marginLeft)
             pdf.text(lines, marginLeft, currentY)
             currentY += lineHeight * (lines.length + 1)
-            
+
             // Calcular dimensiones para la imagen en el PDF
             const imgWidth = pageWidth - 2 * marginLeft
             const imgHeight = (520 / 819) * imgWidth
-            
+
             // Agregar imagen al PDF
             pdf.addImage(graficoIndividual.imagen, 'PNG', marginLeft, currentY, imgWidth, imgHeight)
             currentY += imgHeight + lineHeight * 2
-            
+
             figuraNumero++
           }
         } catch (error) {
@@ -2047,7 +2069,7 @@ export function AutosustentabilidadReportes() {
         if (grupo.esGruposEdad && grupo.camposEdad) {
           const conteos: Record<string, number> = {}
           let total = 0
-          
+
           Object.entries(grupo.camposEdad).forEach(([label, campo]) => {
             conteos[label] = 0
             datosFiltrados.forEach(registro => {
@@ -2073,7 +2095,7 @@ export function AutosustentabilidadReportes() {
         // Caso normal (incluyendo Likert)
         const conteos: Record<string, number> = {}
         let total = 0
-        
+
         datosFiltrados.forEach((registro) => {
           const valor = registro[grupo.campo]
           if (valor !== null && valor !== undefined) {
@@ -2103,7 +2125,7 @@ export function AutosustentabilidadReportes() {
           pdf.addPage()
           currentY = marginTop
         }
-        
+
         pdf.setFont('helvetica', 'bold')
         pdf.setFontSize(11)
         pdf.text(`Tabla ${tablaNumero}: Resumen de ${seccion.titulo}`, marginLeft, currentY)
@@ -2112,15 +2134,15 @@ export function AutosustentabilidadReportes() {
         const tableData: any[][] = []
         datosSeccionPDF.forEach(item => {
           if (!item) return
-          
-          tableData.push([{ 
-            content: item.pregunta, 
-            colSpan: 3, 
-            styles: { 
-              fontStyle: 'bold', 
+
+          tableData.push([{
+            content: item.pregunta,
+            colSpan: 3,
+            styles: {
+              fontStyle: 'bold',
               fillColor: [240, 240, 240],
               minCellHeight: 10
-            } 
+            }
           }])
           item.respuestas.forEach(resp => {
             tableData.push(['', resp.respuesta, `${resp.cantidad} (${resp.porcentaje}%)`])
@@ -2134,13 +2156,13 @@ export function AutosustentabilidadReportes() {
             head: [['Pregunta', 'Respuesta', 'Frecuencia']],
             body: tableData,
             theme: 'grid',
-            headStyles: { 
+            headStyles: {
               fillColor: [66, 139, 202],
               fontSize: 9,
               fontStyle: 'bold',
               textColor: [255, 255, 255]
             },
-            bodyStyles: { 
+            bodyStyles: {
               fontSize: 8,
               cellPadding: 2
             },
@@ -2199,14 +2221,14 @@ export function AutosustentabilidadReportes() {
           head: [tableData[0]],
           body: tableData.slice(1),
           theme: 'grid',
-          headStyles: { 
+          headStyles: {
             fillColor: [66, 139, 202],
             fontSize: 8,
             fontStyle: 'bold',
             textColor: [255, 255, 255],
             cellWidth: 'wrap'
           },
-          bodyStyles: { 
+          bodyStyles: {
             fontSize: 7,
             cellPadding: 2
           },
@@ -2234,18 +2256,18 @@ export function AutosustentabilidadReportes() {
     if (currentY < pageHeight - 20) {
       pdf.setFontSize(9)
       pdf.setFont('helvetica', 'italic')
-      pdf.text('Nota. Datos recopilados del cuestionario de comportamiento proambiental y autosustentabilidad.', 
-              marginLeft, currentY + 10)
+      pdf.text('Nota. Datos recopilados del cuestionario de comportamiento proambiental y autosustentabilidad.',
+        marginLeft, currentY + 10)
     }
 
     // Descargar
-    pdf.save(`reporte_autosustentabilidad_APA7_${new Date().toISOString().slice(0, 10)}.pdf`)
+    pdf.save(`reporte_autosustentabilidad_${new Date().toISOString().slice(0, 10)}.pdf`)
   }
 
-    const generarWord = async () => {
-  const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
-  
-  let html = `
+  const generarWord = async () => {
+    const fecha = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+
+    let html = `
     <!DOCTYPE html>
     <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
@@ -2446,214 +2468,214 @@ export function AutosustentabilidadReportes() {
           <p><strong>Total de registros analizados:</strong> ${datosFiltrados.length}</p>
   `
 
-  // Agregar filtros si existen
-  const filtrosTexto: string[] = []
-  if (estadoCivil !== "todos") filtrosTexto.push(`Estado Civil: ${estadoCivil}`)
-  if (nivelEducacion !== "todos") filtrosTexto.push(`Nivel Educación: ${nivelEducacion}`)
-  if (situacionLaboral !== "todos") filtrosTexto.push(`Situación Laboral: ${situacionLaboral}`)
-  if (ingresoMensual !== "todos") filtrosTexto.push(`Ingreso Mensual: ${ingresoMensual}`)
-  
-  if (filtrosTexto.length > 0) {
-    html += `<p><strong>Filtros aplicados:</strong> ${filtrosTexto.join(', ')}</p>`
-  }
+    // Agregar filtros si existen
+    const filtrosTexto: string[] = []
+    if (estadoCivil !== "todos") filtrosTexto.push(`Estado Civil: ${estadoCivil}`)
+    if (nivelEducacion !== "todos") filtrosTexto.push(`Nivel Educación: ${nivelEducacion}`)
+    if (situacionLaboral !== "todos") filtrosTexto.push(`Situación Laboral: ${situacionLaboral}`)
+    if (ingresoMensual !== "todos") filtrosTexto.push(`Ingreso Mensual: ${ingresoMensual}`)
 
-  // Función optimizada para crear imágenes nítidas para Word
-  const crearImagenNitidaParaWord = async (dataUrl: string): Promise<string> => {
-    try {
-      return new Promise((resolve) => {
-        const img = new Image()
-        img.onload = () => {
-          // Dimensiones exactas para Word (6x4 pulgadas a 150 DPI para nitidez)
-          const targetWidth = 6 * 150  // 6 pulgadas a 150 DPI = 900px
-          const targetHeight = 4 * 150 // 4 pulgadas a 150 DPI = 600px
-          
-          // Crear canvas con dimensiones exactas
-          const canvas = document.createElement('canvas')
-          canvas.width = targetWidth
-          canvas.height = targetHeight
-          
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            // Configurar contexto para alta calidad
-            ctx.imageSmoothingEnabled = true
-            ctx.imageSmoothingQuality = 'high'
-            
-            // Calcular dimensiones manteniendo relación de aspecto
-            let sourceWidth = img.width
-            let sourceHeight = img.height
-            let drawX = 0
-            let drawY = 0
-            let drawWidth = targetWidth
-            let drawHeight = targetHeight
-            
-            // Calcular relación de aspecto
-            const imgAspect = sourceWidth / sourceHeight
-            const targetAspect = targetWidth / targetHeight
-            
-            if (imgAspect > targetAspect) {
-              // La imagen es más ancha que el objetivo
-              drawHeight = targetWidth / imgAspect
-              drawY = (targetHeight - drawHeight) / 2
-            } else {
-              // La imagen es más alta que el objetivo
-              drawWidth = targetHeight * imgAspect
-              drawX = (targetWidth - drawWidth) / 2
-            }
-            
-            // Fondo blanco
-            ctx.fillStyle = '#ffffff'
-            ctx.fillRect(0, 0, targetWidth, targetHeight)
-            
-            // Dibujar imagen con suavizado de alta calidad
-            ctx.drawImage(
-              img, 
-              0, 0, sourceWidth, sourceHeight,
-              drawX, drawY, drawWidth, drawHeight
-            )
-            
-            // Para gráficos de torta, podemos agregar un suavizado extra
-            if (tipoGraficoDocumento === "torta") {
-              // Aplicar un ligero desenfoque para suavizar bordes (solo para gráficos circulares)
-              const tempCanvas = document.createElement('canvas')
-              tempCanvas.width = targetWidth
-              tempCanvas.height = targetHeight
-              const tempCtx = tempCanvas.getContext('2d')
-              
-              if (tempCtx) {
-                tempCtx.drawImage(canvas, 0, 0)
-                ctx.clearRect(0, 0, targetWidth, targetHeight)
-                
-                // Aplicar filtro de suavizado sutil
-                ctx.filter = 'blur(0.5px)'
-                ctx.drawImage(tempCanvas, 0, 0)
-                ctx.filter = 'none'
-              }
-            }
-            
-            // Convertir a PNG con alta calidad (PNG mantiene mejor la calidad que JPEG para gráficos)
-            // Usar PNG para preservar texto nítido en gráficos
-            const optimizedDataUrl = canvas.toDataURL('image/png', 1.0)
-            
-            // Reducir tamaño si es muy grande, pero mantener calidad
-            if (optimizedDataUrl.length > 2000000) { // 2MB
-              const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95)
-              if (jpegDataUrl.length < optimizedDataUrl.length) {
-                resolve(jpegDataUrl)
-                return
-              }
-            }
-            
-            resolve(optimizedDataUrl)
-          } else {
-            resolve(dataUrl) // Fallback
-          }
-        }
-        img.onerror = () => resolve(dataUrl) // Fallback
-        img.src = dataUrl
-      })
-    } catch (error) {
-      console.error('Error optimizando imagen:', error)
-      return dataUrl
+    if (filtrosTexto.length > 0) {
+      html += `<p><strong>Filtros aplicados:</strong> ${filtrosTexto.join(', ')}</p>`
     }
-  }
 
-  // Función para capturar gráfico con alta calidad específica para Word
-  const capturarGraficoParaWord = async (
-    tipoGraficoCapturar: "barras" | "torta" | "lineal", 
-    datosGrafico: DatoGrafico[]
-  ) => {
-    try {
-      // Crear un elemento temporal con dimensiones específicas para Word
-      const tempDiv = document.createElement('div')
-      tempDiv.style.width = '900px'  // 6 pulgadas a 150 DPI
-      tempDiv.style.height = '600px' // 4 pulgadas a 150 DPI
-      tempDiv.style.position = 'fixed'
-      tempDiv.style.left = '-9999px'
-      tempDiv.style.top = '0'
-      tempDiv.style.backgroundColor = '#ffffff'
-      tempDiv.style.zIndex = '9999'
-      document.body.appendChild(tempDiv)
-      
-      // Renderizar el gráfico en el elemento temporal
-      const ReactDOM = await import('react-dom/client')
-      const React = await import('react')
-      
-      // Componente temporal optimizado para Word
-      const GraficoTemporalWord = () => {
-        return React.createElement('div', { 
-          style: { 
-            width: '900px', 
-            height: '600px',
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
+    // Función optimizada para crear imágenes nítidas para Word
+    const crearImagenNitidaParaWord = async (dataUrl: string): Promise<string> => {
+      try {
+        return new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            // Dimensiones exactas para Word (6x4 pulgadas a 150 DPI para nitidez)
+            const targetWidth = 6 * 150  // 6 pulgadas a 150 DPI = 900px
+            const targetHeight = 4 * 150 // 4 pulgadas a 150 DPI = 600px
+
+            // Crear canvas con dimensiones exactas
+            const canvas = document.createElement('canvas')
+            canvas.width = targetWidth
+            canvas.height = targetHeight
+
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              // Configurar contexto para alta calidad
+              ctx.imageSmoothingEnabled = true
+              ctx.imageSmoothingQuality = 'high'
+
+              // Calcular dimensiones manteniendo relación de aspecto
+              let sourceWidth = img.width
+              let sourceHeight = img.height
+              let drawX = 0
+              let drawY = 0
+              let drawWidth = targetWidth
+              let drawHeight = targetHeight
+
+              // Calcular relación de aspecto
+              const imgAspect = sourceWidth / sourceHeight
+              const targetAspect = targetWidth / targetHeight
+
+              if (imgAspect > targetAspect) {
+                // La imagen es más ancha que el objetivo
+                drawHeight = targetWidth / imgAspect
+                drawY = (targetHeight - drawHeight) / 2
+              } else {
+                // La imagen es más alta que el objetivo
+                drawWidth = targetHeight * imgAspect
+                drawX = (targetWidth - drawWidth) / 2
+              }
+
+              // Fondo blanco
+              ctx.fillStyle = '#ffffff'
+              ctx.fillRect(0, 0, targetWidth, targetHeight)
+
+              // Dibujar imagen con suavizado de alta calidad
+              ctx.drawImage(
+                img,
+                0, 0, sourceWidth, sourceHeight,
+                drawX, drawY, drawWidth, drawHeight
+              )
+
+              // Para gráficos de torta, podemos agregar un suavizado extra
+              if (tipoGraficoDocumento === "torta") {
+                // Aplicar un ligero desenfoque para suavizar bordes (solo para gráficos circulares)
+                const tempCanvas = document.createElement('canvas')
+                tempCanvas.width = targetWidth
+                tempCanvas.height = targetHeight
+                const tempCtx = tempCanvas.getContext('2d')
+
+                if (tempCtx) {
+                  tempCtx.drawImage(canvas, 0, 0)
+                  ctx.clearRect(0, 0, targetWidth, targetHeight)
+
+                  // Aplicar filtro de suavizado sutil
+                  ctx.filter = 'blur(0.5px)'
+                  ctx.drawImage(tempCanvas, 0, 0)
+                  ctx.filter = 'none'
+                }
+              }
+
+              // Convertir a PNG con alta calidad (PNG mantiene mejor la calidad que JPEG para gráficos)
+              // Usar PNG para preservar texto nítido en gráficos
+              const optimizedDataUrl = canvas.toDataURL('image/png', 1.0)
+
+              // Reducir tamaño si es muy grande, pero mantener calidad
+              if (optimizedDataUrl.length > 2000000) { // 2MB
+                const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95)
+                if (jpegDataUrl.length < optimizedDataUrl.length) {
+                  resolve(jpegDataUrl)
+                  return
+                }
+              }
+
+              resolve(optimizedDataUrl)
+            } else {
+              resolve(dataUrl) // Fallback
+            }
           }
-        }, 
-        React.createElement('div', {
+          img.onerror = () => resolve(dataUrl) // Fallback
+          img.src = dataUrl
+        })
+      } catch (error) {
+        console.error('Error optimizando imagen:', error)
+        return dataUrl
+      }
+    }
+
+    // Función para capturar gráfico con alta calidad específica para Word
+    const capturarGraficoParaWord = async (
+      tipoGraficoCapturar: "barras" | "torta" | "lineal",
+      datosGrafico: DatoGrafico[]
+    ) => {
+      try {
+        // Crear un elemento temporal con dimensiones específicas para Word
+        const tempDiv = document.createElement('div')
+        tempDiv.style.width = '900px'  // 6 pulgadas a 150 DPI
+        tempDiv.style.height = '600px' // 4 pulgadas a 150 DPI
+        tempDiv.style.position = 'fixed'
+        tempDiv.style.left = '-9999px'
+        tempDiv.style.top = '0'
+        tempDiv.style.backgroundColor = '#ffffff'
+        tempDiv.style.zIndex = '9999'
+        document.body.appendChild(tempDiv)
+
+        // Renderizar el gráfico en el elemento temporal
+        const ReactDOM = await import('react-dom/client')
+        const React = await import('react')
+
+        // Componente temporal optimizado para Word
+        const GraficoTemporalWord = () => {
+          return React.createElement('div', {
+            style: {
+              width: '900px',
+              height: '600px',
+              backgroundColor: '#ffffff',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }
+          },
+            React.createElement('div', {
+              style: {
+                width: '900px',
+                height: '600px'
+              }
+            },
+              React.createElement(GraficoReusable, {
+                datos: datosGrafico,
+                tipo: tipoGraficoCapturar,
+                tituloX: "Respuestas",
+                tituloY: "Cantidad",
+                colors: COLORS,
+                esMovil: false,
+                isLandscape: false,
+                showLabelsOnPie: true,
+                exportMode: true
+              })))
+        }
+
+        // Crear root y renderizar
+        const root = ReactDOM.createRoot(tempDiv)
+        root.render(React.createElement(GraficoTemporalWord))
+
+        // Esperar suficiente tiempo para que se renderice completamente
+        await new Promise(resolve => setTimeout(resolve, 3000))
+
+        // Capturar con alta resolución
+        const chartDataUrl = await toPng(tempDiv.firstChild as HTMLElement, {
+          backgroundColor: '#ffffff',
+          width: 900,  // 6 pulgadas a 150 DPI
+          height: 600, // 4 pulgadas a 150 DPI
+          pixelRatio: 2, // Alta calidad pero no excesiva
+          quality: 1.0,
+          cacheBust: true,
           style: {
             width: '900px',
-            height: '600px'
+            height: '600px',
+            backgroundColor: '#ffffff',
+            display: 'block'
           }
-        },
-        React.createElement(GraficoReusable, {
-          datos: datosGrafico,
-          tipo: tipoGraficoCapturar,
-          tituloX: "Respuestas",
-          tituloY: "Cantidad",
-          colors: COLORS,
-          esMovil: false,
-          isLandscape: false,
-          showLabelsOnPie: true,
-          exportMode: true
-        })))
-      }
-      
-      // Crear root y renderizar
-      const root = ReactDOM.createRoot(tempDiv)
-      root.render(React.createElement(GraficoTemporalWord))
-      
-      // Esperar suficiente tiempo para que se renderice completamente
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      // Capturar con alta resolución
-      const chartDataUrl = await toPng(tempDiv.firstChild as HTMLElement, {
-        backgroundColor: '#ffffff',
-        width: 900,  // 6 pulgadas a 150 DPI
-        height: 600, // 4 pulgadas a 150 DPI
-        pixelRatio: 2, // Alta calidad pero no excesiva
-        quality: 1.0,
-        cacheBust: true,
-        style: {
-          width: '900px',
-          height: '600px',
-          backgroundColor: '#ffffff',
-          display: 'block'
-        }
-      })
-      
-      // Limpiar
-      root.unmount()
-      document.body.removeChild(tempDiv)
-      
-      return chartDataUrl
-    } catch (error) {
-      console.error('Error capturando gráfico para Word:', error)
-      return null
-    }
-  }
+        })
 
-  // Agregar gráfico combinado si está habilitado
-  if (incluirGrafico && datosCombinados.length > 0) {
-    try {
-      // Capturar gráfico con calidad optimizada para Word
-      const chartDataUrl = await capturarGraficoParaWord(tipoGraficoDocumento, datosCombinados)
-      
-      if (chartDataUrl) {
-        // Optimizar imagen para nitidez en Word
-        const optimizedImageUrl = await crearImagenNitidaParaWord(chartDataUrl)
-        
-        html += `
+        // Limpiar
+        root.unmount()
+        document.body.removeChild(tempDiv)
+
+        return chartDataUrl
+      } catch (error) {
+        console.error('Error capturando gráfico para Word:', error)
+        return null
+      }
+    }
+
+    // Agregar gráfico combinado si está habilitado
+    if (incluirGrafico && datosCombinados.length > 0) {
+      try {
+        // Capturar gráfico con calidad optimizada para Word
+        const chartDataUrl = await capturarGraficoParaWord(tipoGraficoDocumento, datosCombinados)
+
+        if (chartDataUrl) {
+          // Optimizar imagen para nitidez en Word
+          const optimizedImageUrl = await crearImagenNitidaParaWord(chartDataUrl)
+
+          html += `
           <div class="figure-container keep-together">
             <div class="figure-caption">Figura 1</div>
             <p><em>Distribución combinada de respuestas de las secciones seleccionadas</em></p>
@@ -2664,163 +2686,163 @@ export function AutosustentabilidadReportes() {
             </div>
           </div>
         `
-      } else {
-        html += `
+        } else {
+          html += `
           <div class="figure-container">
             <div class="figure-caption">Figura 1</div>
             <p><em>Distribución combinada de respuestas de las secciones seleccionadas</em></p>
             <p><strong>Nota:</strong> La imagen del gráfico no pudo generarse.</p>
           </div>
         `
-      }
-    } catch (error) {
-      console.error('Error al generar imagen para Word:', error)
-      html += `
+        }
+      } catch (error) {
+        console.error('Error al generar imagen para Word:', error)
+        html += `
         <div class="figure-container">
           <div class="figure-caption">Figura 1</div>
           <p><em>Distribución combinada de respuestas de las secciones seleccionadas</em></p>
           <p><strong>Nota:</strong> Error al generar la imagen del gráfico.</p>
         </div>
       `
+      }
     }
-  }
 
-  // Generar contenido para cada sección seleccionada
-  let figuraNumero = 2
-  let tablaNumero = 1
-  let sectionCount = 0
-  
-  for (const seccionKey of seccionesIncluidas) {
-    const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
-    if (!seccion) continue
-    
-    sectionCount++
-    
-    // Agregar salto de página si no es la primera sección
-    if (sectionCount > 1) {
-      html += `<div class="page-break"></div>`
-    }
-    
-    html += `
+    // Generar contenido para cada sección seleccionada
+    let figuraNumero = 2
+    let tablaNumero = 1
+    let sectionCount = 0
+
+    for (const seccionKey of seccionesIncluidas) {
+      const seccion = SECCIONES[seccionKey as keyof typeof SECCIONES]
+      if (!seccion) continue
+
+      sectionCount++
+
+      // Agregar salto de página si no es la primera sección
+      if (sectionCount > 1) {
+        html += `<div class="page-break"></div>`
+      }
+
+      html += `
       <div class="section">
         <h2>${seccion.titulo}</h2>
     `
 
-    // Obtener preguntas seleccionadas para esta sección
-    const preguntasSeleccionadas = preguntasPorSeccion[seccionKey] || []
-    
-    // Si no hay preguntas seleccionadas en esta sección, continuar
-    if (preguntasSeleccionadas.length === 0) {
-      html += `<p>No se seleccionaron preguntas para esta sección.</p>`
-      html += `</div>`
-      continue
-    }
+      // Obtener preguntas seleccionadas para esta sección
+      const preguntasSeleccionadas = preguntasPorSeccion[seccionKey] || []
 
-    // Generar gráficos individuales para cada pregunta seleccionada
-    let graficoCount = 0
-    for (const preguntaKey of preguntasSeleccionadas) {
-      const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
-      if (!grupo) continue
-      
-      // Procesar datos para esta pregunta específica
-      let datosPregunta: DatoGrafico[] = []
-      
-      if (seccionKey === "distribucion-demografica") {
-        if (grupo.esGruposEdad && grupo.camposEdad) {
-          const conteos: Record<string, number> = {}
+      // Si no hay preguntas seleccionadas en esta sección, continuar
+      if (preguntasSeleccionadas.length === 0) {
+        html += `<p>No se seleccionaron preguntas para esta sección.</p>`
+        html += `</div>`
+        continue
+      }
 
-          Object.entries(grupo.camposEdad).forEach(([label, campo]) => {
-            conteos[label] = 0
+      // Generar gráficos individuales para cada pregunta seleccionada
+      let graficoCount = 0
+      for (const preguntaKey of preguntasSeleccionadas) {
+        const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
+        if (!grupo) continue
+
+        // Procesar datos para esta pregunta específica
+        let datosPregunta: DatoGrafico[] = []
+
+        if (seccionKey === "distribucion-demografica") {
+          if (grupo.esGruposEdad && grupo.camposEdad) {
+            const conteos: Record<string, number> = {}
+
+            Object.entries(grupo.camposEdad).forEach(([label, campo]) => {
+              conteos[label] = 0
+              datosFiltrados.forEach((registro) => {
+                const valor = Number(registro[campo]) || 0
+                if (valor > 0) {
+                  conteos[label]++
+                }
+              })
+            })
+
+            const total = Object.values(conteos).reduce((sum, val) => sum + val, 0)
+
+            datosPregunta = Object.entries(conteos).map(([name, value]) => ({
+              name,
+              value,
+              porcentaje: total > 0 ? (value / total) * 100 : 0,
+            }))
+          } else {
+            const conteos: Record<string, number> = {}
+
+            grupo.valores?.forEach((valor) => {
+              conteos[valor] = 0
+            })
+
             datosFiltrados.forEach((registro) => {
-              const valor = Number(registro[campo]) || 0
-              if (valor > 0) {
-                conteos[label]++
+              const valor = registro[grupo.campo]
+              if (valor) {
+                const valorStr = valor.toString()
+                const valorEncontrado = grupo.valores!.find((v) => v.toLowerCase() === valorStr.toLowerCase())
+                if (valorEncontrado) {
+                  conteos[valorEncontrado] = (conteos[valorEncontrado] || 0) + 1
+                }
               }
             })
-          })
 
-          const total = Object.values(conteos).reduce((sum, val) => sum + val, 0)
+            const total = Object.values(conteos).reduce((sum, val) => sum + val, 0)
 
-          datosPregunta = Object.entries(conteos).map(([name, value]) => ({
-            name,
-            value,
-            porcentaje: total > 0 ? (value / total) * 100 : 0,
-          }))
+            datosPregunta = Object.entries(conteos).map(([name, value]) => ({
+              name,
+              value,
+              porcentaje: total > 0 ? (value / total) * 100 : 0,
+            }))
+          }
         } else {
+          const opcionesLikert = [
+            "Totalmente desacuerdo",
+            "Desacuerdo",
+            "Indiferente",
+            "De acuerdo",
+            "Totalmente de acuerdo"
+          ]
+
+          const totalEncuestas = datosFiltrados.length
           const conteos: Record<string, number> = {}
-          
-          grupo.valores?.forEach((valor) => {
+
+          opcionesLikert.forEach((valor) => {
             conteos[valor] = 0
           })
 
           datosFiltrados.forEach((registro) => {
             const valor = registro[grupo.campo]
-            if (valor) {
-              const valorStr = valor.toString()
-              const valorEncontrado = grupo.valores!.find((v) => v.toLowerCase() === valorStr.toLowerCase())
-              if (valorEncontrado) {
-                conteos[valorEncontrado] = (conteos[valorEncontrado] || 0) + 1
+            if (valor && typeof valor === "string") {
+              const valorNorm = normalizarValorLikert(valor)
+              if (opcionesLikert.includes(valorNorm)) {
+                conteos[valorNorm]++
               }
             }
           })
 
-          const total = Object.values(conteos).reduce((sum, val) => sum + val, 0)
-
-          datosPregunta = Object.entries(conteos).map(([name, value]) => ({
+          datosPregunta = opcionesLikert.map((name) => ({
             name,
-            value,
-            porcentaje: total > 0 ? (value / total) * 100 : 0,
+            value: conteos[name] || 0,
+            porcentaje: totalEncuestas > 0 ? ((conteos[name] || 0) / totalEncuestas) * 100 : 0,
           }))
         }
-      } else {
-        const opcionesLikert = [
-          "Totalmente desacuerdo", 
-          "Desacuerdo", 
-          "Indiferente", 
-          "De acuerdo", 
-          "Totalmente de acuerdo"
-        ]
-        
-        const totalEncuestas = datosFiltrados.length
-        const conteos: Record<string, number> = {}
 
-        opcionesLikert.forEach((valor) => {
-          conteos[valor] = 0
-        })
+        // Solo generar gráfico si hay datos
+        if (datosPregunta.length > 0) {
+          try {
+            // Capturar gráfico con calidad optimizada para Word
+            const chartDataUrl = await capturarGraficoParaWord(tipoGraficoDocumento, datosPregunta)
 
-        datosFiltrados.forEach((registro) => {
-          const valor = registro[grupo.campo]
-          if (valor && typeof valor === "string") {
-            const valorNorm = normalizarValorLikert(valor)
-            if (opcionesLikert.includes(valorNorm)) {
-              conteos[valorNorm]++
-            }
-          }
-        })
+            if (chartDataUrl) {
+              // Optimizar imagen para nitidez
+              const optimizedImageUrl = await crearImagenNitidaParaWord(chartDataUrl)
 
-        datosPregunta = opcionesLikert.map((name) => ({
-          name,
-          value: conteos[name] || 0,
-          porcentaje: totalEncuestas > 0 ? ((conteos[name] || 0) / totalEncuestas) * 100 : 0,
-        }))
-      }
-      
-      // Solo generar gráfico si hay datos
-      if (datosPregunta.length > 0) {
-        try {
-          // Capturar gráfico con calidad optimizada para Word
-          const chartDataUrl = await capturarGraficoParaWord(tipoGraficoDocumento, datosPregunta)
-          
-          if (chartDataUrl) {
-            // Optimizar imagen para nitidez
-            const optimizedImageUrl = await crearImagenNitidaParaWord(chartDataUrl)
-            
-            // Limitar la longitud del título
-            const tituloCorto = grupo.nombre.length > 100 
-              ? grupo.nombre.substring(0, 100) + "..." 
-              : grupo.nombre
-            
-            html += `
+              // Limitar la longitud del título
+              const tituloCorto = grupo.nombre.length > 100
+                ? grupo.nombre.substring(0, 100) + "..."
+                : grupo.nombre
+
+              html += `
               <div class="figure-container keep-together">
                 <div class="figure-caption">Figura ${figuraNumero}</div>
                 <p><em>${tituloCorto}</em></p>
@@ -2830,41 +2852,41 @@ export function AutosustentabilidadReportes() {
                 </div>
               </div>
             `
-            figuraNumero++
-            graficoCount++
-            
-            // Limitar a 1 gráfico por página para mejor nitidez
-            if (graficoCount % 1 === 0 && graficoCount < preguntasSeleccionadas.length) {
-              html += `<div class="page-break"></div>`
+              figuraNumero++
+              graficoCount++
+
+              // Limitar a 1 gráfico por página para mejor nitidez
+              if (graficoCount % 1 === 0 && graficoCount < preguntasSeleccionadas.length) {
+                html += `<div class="page-break"></div>`
+              }
             }
-          }
-        } catch (error) {
-          console.error('Error generando gráfico individual para Word:', error)
-          const tituloCorto = grupo.nombre.length > 100 
-            ? grupo.nombre.substring(0, 100) + "..." 
-            : grupo.nombre
-          
-          html += `
+          } catch (error) {
+            console.error('Error generando gráfico individual para Word:', error)
+            const tituloCorto = grupo.nombre.length > 100
+              ? grupo.nombre.substring(0, 100) + "..."
+              : grupo.nombre
+
+            html += `
             <div class="figure-container">
               <div class="figure-caption">Figura ${figuraNumero}</div>
               <p><em>${tituloCorto}</em></p>
               <p><strong>Nota:</strong> No se pudo generar la imagen del gráfico.</p>
             </div>
           `
-          figuraNumero++
-          graficoCount++
+            figuraNumero++
+            graficoCount++
+          }
         }
       }
-    }
 
-    // Tabla de resumen para la sección (solo si hay preguntas)
-    if (preguntasSeleccionadas.length > 0) {
-      // Asegurar que la tabla esté en una nueva página si hay gráficos
-      if (graficoCount > 0) {
-        html += `<div class="page-break"></div>`
-      }
-      
-      html += `
+      // Tabla de resumen para la sección (solo si hay preguntas)
+      if (preguntasSeleccionadas.length > 0) {
+        // Asegurar que la tabla esté en una nueva página si hay gráficos
+        if (graficoCount > 0) {
+          html += `<div class="page-break"></div>`
+        }
+
+        html += `
         <div class="table-container keep-together">
           <div class="table-caption">Tabla ${tablaNumero}</div>
           <p><em>Resumen de respuestas para ${seccion.titulo}</em></p>
@@ -2879,109 +2901,109 @@ export function AutosustentabilidadReportes() {
             <tbody>
       `
 
-      // Procesar preguntas seleccionadas (código de tabla se mantiene igual)
-      for (const preguntaKey of preguntasSeleccionadas) {
-        const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
-        if (!grupo) continue
+        // Procesar preguntas seleccionadas (código de tabla se mantiene igual)
+        for (const preguntaKey of preguntasSeleccionadas) {
+          const grupo = seccion.grupos[preguntaKey as keyof typeof seccion.grupos]
+          if (!grupo) continue
 
-        const nombrePreguntaTabla = grupo.nombre.length > 80 
-          ? grupo.nombre.substring(0, 80) + "..." 
-          : grupo.nombre
+          const nombrePreguntaTabla = grupo.nombre.length > 80
+            ? grupo.nombre.substring(0, 80) + "..."
+            : grupo.nombre
 
-        if (grupo.esGruposEdad && grupo.camposEdad) {
-          const conteos: Record<string, number> = {}
-          let total = 0
-          
-          Object.entries(grupo.camposEdad).forEach(([label, campo]) => {
-            conteos[label] = 0
-            datosFiltrados.forEach(registro => {
-              const valor = Number(registro[campo]) || 0
-              if (valor > 0) {
-                conteos[label] += valor
-                total += valor
+          if (grupo.esGruposEdad && grupo.camposEdad) {
+            const conteos: Record<string, number> = {}
+            let total = 0
+
+            Object.entries(grupo.camposEdad).forEach(([label, campo]) => {
+              conteos[label] = 0
+              datosFiltrados.forEach(registro => {
+                const valor = Number(registro[campo]) || 0
+                if (valor > 0) {
+                  conteos[label] += valor
+                  total += valor
+                }
+              })
+            })
+
+            const respuestas = Object.entries(conteos)
+              .map(([respuesta, cantidad]) => ({
+                respuesta,
+                cantidad,
+                porcentaje: total > 0 ? ((cantidad / total) * 100).toFixed(2) : '0'
+              }))
+              .sort((a, b) => b.cantidad - a.cantidad)
+
+            html += `
+            <tr class="pregunta-header">
+              <td colspan="3"><strong>${nombrePreguntaTabla}</strong></td>
+            </tr>
+          `
+
+            respuestas.forEach(resp => {
+              html += `
+              <tr>
+                <td></td>
+                <td>${resp.respuesta}</td>
+                <td>${resp.cantidad} (${resp.porcentaje}%)</td>
+              </tr>
+            `
+            })
+
+            html += `
+            <tr class="summary-row">
+              <td colspan="2" style="text-align: right;"><strong>Total</strong></td>
+              <td><strong>${total} (100%)</strong></td>
+            </tr>
+          `
+          } else {
+            const conteos: Record<string, number> = {}
+            let total = 0
+
+            datosFiltrados.forEach((registro) => {
+              const valor = registro[grupo.campo]
+              if (valor !== null && valor !== undefined) {
+                const valorStr = String(valor).trim()
+                if (valorStr) {
+                  conteos[valorStr] = (conteos[valorStr] || 0) + 1
+                  total++
+                }
               }
             })
-          })
 
-          const respuestas = Object.entries(conteos)
-            .map(([respuesta, cantidad]) => ({
-              respuesta,
-              cantidad,
-              porcentaje: total > 0 ? ((cantidad / total) * 100).toFixed(2) : '0'
-            }))
-            .sort((a, b) => b.cantidad - a.cantidad)
+            const respuestas = Object.entries(conteos)
+              .map(([respuesta, cantidad]) => ({
+                respuesta,
+                cantidad,
+                porcentaje: total > 0 ? ((cantidad / total) * 100).toFixed(2) : '0'
+              }))
+              .sort((a, b) => b.cantidad - a.cantidad)
 
-          html += `
+            html += `
             <tr class="pregunta-header">
               <td colspan="3"><strong>${nombrePreguntaTabla}</strong></td>
             </tr>
           `
-          
-          respuestas.forEach(resp => {
-            html += `
+
+            respuestas.forEach(resp => {
+              html += `
               <tr>
                 <td></td>
                 <td>${resp.respuesta}</td>
                 <td>${resp.cantidad} (${resp.porcentaje}%)</td>
               </tr>
             `
-          })
-          
-          html += `
-            <tr class="summary-row">
-              <td colspan="2" style="text-align: right;"><strong>Total</strong></td>
-              <td><strong>${total} (100%)</strong></td>
-            </tr>
-          `
-        } else {
-          const conteos: Record<string, number> = {}
-          let total = 0
-          
-          datosFiltrados.forEach((registro) => {
-            const valor = registro[grupo.campo]
-            if (valor !== null && valor !== undefined) {
-              const valorStr = String(valor).trim()
-              if (valorStr) {
-                conteos[valorStr] = (conteos[valorStr] || 0) + 1
-                total++
-              }
-            }
-          })
+            })
 
-          const respuestas = Object.entries(conteos)
-            .map(([respuesta, cantidad]) => ({
-              respuesta,
-              cantidad,
-              porcentaje: total > 0 ? ((cantidad / total) * 100).toFixed(2) : '0'
-            }))
-            .sort((a, b) => b.cantidad - a.cantidad)
-
-          html += `
-            <tr class="pregunta-header">
-              <td colspan="3"><strong>${nombrePreguntaTabla}</strong></td>
-            </tr>
-          `
-          
-          respuestas.forEach(resp => {
             html += `
-              <tr>
-                <td></td>
-                <td>${resp.respuesta}</td>
-                <td>${resp.cantidad} (${resp.porcentaje}%)</td>
-              </tr>
-            `
-          })
-          
-          html += `
             <tr class="summary-row">
               <td colspan="2" style="text-align: right;"><strong>Total</strong></td>
               <td><strong>${total} (100%)</strong></td>
             </tr>
           `
+          }
         }
-      }
 
-      html += `
+        html += `
             </tbody>
           </table>
           <div class="table-note">
@@ -2990,18 +3012,18 @@ export function AutosustentabilidadReportes() {
           </div>
         </div>
       `
-      
-      tablaNumero++
+
+        tablaNumero++
+      }
+
+      html += `</div>` // Cierre de section
     }
 
-    html += `</div>` // Cierre de section
-  }
-
-  // Agregar tabla de sección Likert si está habilitada
-  if (incluirTablaSeccion && seccionSeleccionada !== "distribucion-demografica") {
-    const tablasLikertActual = generarTablaLikertPorSeccion()
-    if (tablasLikertActual && tablasLikertActual.length > 0) {
-      html += `
+    // Agregar tabla de sección Likert si está habilitada
+    if (incluirTablaSeccion && seccionSeleccionada !== "distribucion-demografica") {
+      const tablasLikertActual = generarTablaLikertPorSeccion()
+      if (tablasLikertActual && tablasLikertActual.length > 0) {
+        html += `
         <div class="page-break"></div>
         <div class="section">
           <h2>Análisis de Escala Likert: ${SECCIONES[seccionSeleccionada as keyof typeof SECCIONES]?.titulo}</h2>
@@ -3022,13 +3044,13 @@ export function AutosustentabilidadReportes() {
               </thead>
               <tbody>
       `
-      
-      tablasLikertActual.forEach(tabla => {
-        const nombrePregunta = tabla.pregunta.length > 70 
-          ? tabla.pregunta.substring(0, 70) + "..." 
-          : tabla.pregunta
-        
-        html += `
+
+        tablasLikertActual.forEach(tabla => {
+          const nombrePregunta = tabla.pregunta.length > 70
+            ? tabla.pregunta.substring(0, 70) + "..."
+            : tabla.pregunta
+
+          html += `
           <tr>
             <td>${nombrePregunta}</td>
             <td style="text-align: center;">${formatearPorcentaje((tabla.conteos["Totalmente desacuerdo"] / tabla.totalEncuestas) * 100)}</td>
@@ -3038,16 +3060,16 @@ export function AutosustentabilidadReportes() {
             <td style="text-align: center;">${formatearPorcentaje((tabla.conteos["Totalmente de acuerdo"] / tabla.totalEncuestas) * 100)}</td>
           </tr>
         `
-      })
-      
-      const totalFilas = tablasLikertActual.length
-      const promediosTD = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Totalmente desacuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
-      const promediosD = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Desacuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
-      const promediosI = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Indiferente"] / t.totalEncuestas) * 100, 0) / totalFilas
-      const promediosA = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["De acuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
-      const promediosTA = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Totalmente de acuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
-      
-      html += `
+        })
+
+        const totalFilas = tablasLikertActual.length
+        const promediosTD = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Totalmente desacuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
+        const promediosD = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Desacuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
+        const promediosI = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Indiferente"] / t.totalEncuestas) * 100, 0) / totalFilas
+        const promediosA = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["De acuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
+        const promediosTA = tablasLikertActual.reduce((sum, t) => sum + (t.conteos["Totalmente de acuerdo"] / t.totalEncuestas) * 100, 0) / totalFilas
+
+        html += `
             </tbody>
           </table>
           
@@ -3090,11 +3112,11 @@ export function AutosustentabilidadReportes() {
           </div>
         </div>
       `
+      }
     }
-  }
 
-  // Nota final APA 7
-  html += `
+    // Nota final APA 7
+    html += `
         <div class="note">
           <p><em>Nota.</em> Este reporte fue generado automáticamente a partir de los datos recopilados en el cuestionario 
           de comportamiento proambiental y autosustentabilidad.</p>
@@ -3104,25 +3126,25 @@ export function AutosustentabilidadReportes() {
     </html>
   `
 
-  // Crear el archivo Word
-  const blob = new Blob([html], { 
-    type: 'application/msword;charset=utf-8' 
-  })
-  
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  
-  link.href = url
-  link.download = `Reporte_Autosustentabilidad_APA7_${new Date().toISOString().slice(0, 10)}.doc`
-  
-  document.body.appendChild(link)
-  link.click()
-  
-  setTimeout(() => {
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }, 100)
-}
+    // Crear el archivo Word
+    const blob = new Blob([html], {
+      type: 'application/msword;charset=utf-8'
+    })
+
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    link.href = url
+    link.download = `Reporte_Autosustentabilidad_APA7_${new Date().toISOString().slice(0, 10)}.doc`
+
+    document.body.appendChild(link)
+    link.click()
+
+    setTimeout(() => {
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }, 100)
+  }
 
   if (loading) {
     return (
@@ -3259,18 +3281,18 @@ export function AutosustentabilidadReportes() {
                     </div>
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent 
+                <SelectContent
                   className="bg-white max-h-[70vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full"
                   position="popper"
                 >
                   {(() => {
                     const seccion = SECCIONES[seccionSeleccionada as keyof typeof SECCIONES]
                     if (!seccion) return null
-                    
+
                     return Object.entries(seccion.grupos).map(([key, grupo]) => (
-                      <SelectItem 
-                        key={key} 
-                        value={key} 
+                      <SelectItem
+                        key={key}
+                        value={key}
                         className="py-3 px-4 hover:bg-muted transition-colors"
                       >
                         <div className="flex flex-col">
@@ -3352,15 +3374,15 @@ export function AutosustentabilidadReportes() {
             <span className="text-sm font-medium text-muted-foreground mr-2 self-center">Descargar gráfico:</span>
             <Button onClick={() => descargarGrafico('png')} variant="outline" size="sm">
               <FileImage className="w-4 h-4 mr-2" />
-              PNG (819x520)
+              PNG
             </Button>
             <Button onClick={() => descargarGrafico('jpeg')} variant="outline" size="sm">
               <FileImage className="w-4 h-4 mr-2" />
-              JPEG (819x520)
+              JPEG
             </Button>
             <Button onClick={() => descargarGrafico('svg')} variant="outline" size="sm">
               <FileImage className="w-4 h-4 mr-2" />
-              SVG (819x520)
+              SVG
             </Button>
           </div>
         </CardContent>
@@ -3433,7 +3455,7 @@ export function AutosustentabilidadReportes() {
                           </TableBody>
                         </Table>
                       </div>
-                      
+
                       {/* Versión Móvil - Cards responsivas */}
                       <div className="md:hidden space-y-4">
                         {tabla.datos.map((fila, idx2) => (
@@ -3545,58 +3567,58 @@ export function AutosustentabilidadReportes() {
                           <TableCell className="text-center font-bold text-sm py-3 min-w-[100px] align-top">
                             {tablasLikert.length > 0 && tablasLikert[0].totalEncuestas > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce(
-                                    (sum, t) => sum + (t.conteos["Totalmente desacuerdo"] / t.totalEncuestas) * 100,
-                                    0,
-                                  ) / tablasLikert.length
-                                )
+                                tablasLikert.reduce(
+                                  (sum, t) => sum + (t.conteos["Totalmente desacuerdo"] / t.totalEncuestas) * 100,
+                                  0,
+                                ) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                           <TableCell className="text-center font-bold text-sm py-3 min-w-[90px] align-top">
                             {tablasLikert.length > 0 && tablasLikert[0].totalEncuestas > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce(
-                                    (sum, t) => sum + (t.conteos["Desacuerdo"] / t.totalEncuestas) * 100,
-                                    0,
-                                  ) / tablasLikert.length
-                                )
+                                tablasLikert.reduce(
+                                  (sum, t) => sum + (t.conteos["Desacuerdo"] / t.totalEncuestas) * 100,
+                                  0,
+                                ) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                           <TableCell className="text-center font-bold text-sm py-3 min-w-[90px] align-top">
                             {tablasLikert.length > 0 && tablasLikert[0].totalEncuestas > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce(
-                                    (sum, t) => sum + (t.conteos["Indiferente"] / t.totalEncuestas) * 100,
-                                    0,
-                                  ) / tablasLikert.length
-                                )
+                                tablasLikert.reduce(
+                                  (sum, t) => sum + (t.conteos["Indiferente"] / t.totalEncuestas) * 100,
+                                  0,
+                                ) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                           <TableCell className="text-center font-bold text-sm py-3 min-w-[90px] align-top">
                             {tablasLikert.length > 0 && tablasLikert[0].totalEncuestas > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce(
-                                    (sum, t) => sum + (t.conteos["De acuerdo"] / t.totalEncuestas) * 100,
-                                    0,
-                                  ) / tablasLikert.length
-                                )
+                                tablasLikert.reduce(
+                                  (sum, t) => sum + (t.conteos["De acuerdo"] / t.totalEncuestas) * 100,
+                                  0,
+                                ) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                           <TableCell className="text-center font-bold text-sm py-3 min-w-[110px] align-top">
                             {tablasLikert.length > 0 && tablasLikert[0].totalEncuestas > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce(
-                                    (sum, t) => sum + (t.conteos["Totalmente de acuerdo"] / t.totalEncuestas) * 100,
-                                    0,
-                                  ) / tablasLikert.length
-                                )
+                                tablasLikert.reduce(
+                                  (sum, t) => sum + (t.conteos["Totalmente de acuerdo"] / t.totalEncuestas) * 100,
+                                  0,
+                                ) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                           <TableCell className="text-center bg-muted font-bold text-sm py-3 min-w-[100px] align-top">
                             {tablasLikert.length > 0
                               ? formatearPorcentaje(
-                                  tablasLikert.reduce((sum, t) => sum + t.promedio, 0) / tablasLikert.length
-                                )
+                                tablasLikert.reduce((sum, t) => sum + t.promedio, 0) / tablasLikert.length
+                              )
                               : "0%"}
                           </TableCell>
                         </TableRow>
@@ -3699,34 +3721,34 @@ export function AutosustentabilidadReportes() {
               Exporta los datos de la variable seleccionada
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button 
+              <Button
                 onClick={() => exportarCSV(
                   datosGrafico.map(d => ({ Respuesta: d.name, Cantidad: d.value, "Porcentaje (%)": formatearPorcentaje(d.porcentaje) })),
                   `grafico_${grupoSeleccionado}`
-                )} 
-                variant="outline" 
+                )}
+                variant="outline"
                 size="sm"
               >
                 <Download className="w-4 h-4 mr-2" />
                 CSV
               </Button>
-              <Button 
+              <Button
                 onClick={() => exportarExcel(
                   datosGrafico.map(d => ({ Respuesta: d.name, Cantidad: d.value, "Porcentaje (%)": formatearPorcentaje(d.porcentaje) })),
                   `grafico_${grupoSeleccionado}`
-                )} 
-                variant="outline" 
+                )}
+                variant="outline"
                 size="sm"
               >
                 <FileSpreadsheet className="w-4 h-4 mr-2" />
                 XLSX
               </Button>
-              <Button 
+              <Button
                 onClick={() => exportarJSON(
                   datosGrafico.map(d => ({ respuesta: d.name, cantidad: d.value, porcentaje: d.porcentaje })),
                   `grafico_${grupoSeleccionado}`
-                )} 
-                variant="outline" 
+                )}
+                variant="outline"
                 size="sm"
               >
                 <FileJson className="w-4 h-4 mr-2" />
@@ -3794,7 +3816,7 @@ export function AutosustentabilidadReportes() {
             <p className="text-sm text-muted-foreground">
               Genera un reporte incluyendo gráfico y tabla
             </p>
-            
+
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" size="sm" disabled={generandoDocumento}>
@@ -3802,7 +3824,7 @@ export function AutosustentabilidadReportes() {
                   {generandoDocumento ? 'Generando...' : 'Configurar y Descargar'}
                 </Button>
               </DialogTrigger>
-              
+
               <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-background">
                 <DialogHeader>
                   <DialogTitle>Configurar Reporte</DialogTitle>
@@ -3810,14 +3832,14 @@ export function AutosustentabilidadReportes() {
                     Selecciona qué elementos incluir en el reporte
                   </DialogDescription>
                 </DialogHeader>
-                
+
                 <div className="space-y-6 py-4">
                   {/* Opciones generales */}
                   <div className="space-y-4">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="incluirGrafico" 
-                        checked={incluirGrafico} 
+                      <Checkbox
+                        id="incluirGrafico"
+                        checked={incluirGrafico}
                         onCheckedChange={(checked) => setIncluirGrafico(checked as boolean)}
                       />
                       <div className="grid gap-1.5 leading-none">
@@ -3829,12 +3851,12 @@ export function AutosustentabilidadReportes() {
                         </p>
                       </div>
                     </div>
-                    
+
                     {incluirGrafico && (
                       <div className="ml-6 space-y-2">
                         <Label className="text-sm text-muted-foreground">Tipo de gráfico para el documento:</Label>
-                        <Select 
-                          value={tipoGraficoDocumento} 
+                        <Select
+                          value={tipoGraficoDocumento}
                           onValueChange={(v: "barras" | "torta" | "lineal") => setTipoGraficoDocumento(v)}
                         >
                           <SelectTrigger className="bg-background border-input">
@@ -3848,11 +3870,11 @@ export function AutosustentabilidadReportes() {
                         </Select>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="incluirTablaSeccion" 
-                        checked={incluirTablaSeccion} 
+                      <Checkbox
+                        id="incluirTablaSeccion"
+                        checked={incluirTablaSeccion}
                         onCheckedChange={(checked) => setIncluirTablaSeccion(checked as boolean)}
                       />
                       <div className="grid gap-1.5 leading-none">
@@ -3869,33 +3891,33 @@ export function AutosustentabilidadReportes() {
                   {/* Selección de secciones y preguntas */}
                   <div className="space-y-4">
                     <Label className="font-medium">Secciones a incluir:</Label>
-                    
+
                     <div className="space-y-3 max-h-60 overflow-y-auto border rounded-md p-3">
                       {Object.entries(SECCIONES).map(([seccionKey, seccion]) => {
                         const isSelected = seccionesIncluidas.includes(seccionKey)
                         const preguntasSeleccionadas = preguntasPorSeccion[seccionKey] || []
-                        
+
                         return (
                           <div key={seccionKey} className="space-y-2">
                             <div className="flex items-center space-x-2">
-                              <Checkbox 
+                              <Checkbox
                                 id={`seccion-${seccionKey}`}
                                 checked={isSelected}
                                 onCheckedChange={() => toggleSeccion(seccionKey)}
                               />
-                              <Label 
-                                htmlFor={`seccion-${seccionKey}`} 
+                              <Label
+                                htmlFor={`seccion-${seccionKey}`}
                                 className="font-medium text-sm cursor-pointer flex-1"
                               >
                                 {seccion.titulo}
                               </Label>
                               <span className="text-xs text-muted-foreground">
-                                {isSelected ? 
-                                  `(${preguntasSeleccionadas.length} preguntas seleccionadas)` : 
+                                {isSelected ?
+                                  `(${preguntasSeleccionadas.length} preguntas seleccionadas)` :
                                   '(No seleccionada)'}
                               </span>
                             </div>
-                            
+
                             {/* Mostrar preguntas para TODAS las secciones, incluyendo distribución demográfica */}
                             {isSelected && (
                               <div className="ml-6 space-y-2 border-l-2 border-primary/20 pl-3 pt-2">
@@ -3904,16 +3926,16 @@ export function AutosustentabilidadReportes() {
                                     Seleccionar preguntas específicas:
                                   </Label>
                                   <div className="flex gap-1">
-                                    <Button 
-                                      variant="ghost" 
+                                    <Button
+                                      variant="ghost"
                                       size="xs"
                                       onClick={() => seleccionarTodasPreguntas(seccionKey)}
                                       className="h-6 text-xs"
                                     >
                                       Todas
                                     </Button>
-                                    <Button 
-                                      variant="ghost" 
+                                    <Button
+                                      variant="ghost"
                                       size="xs"
                                       onClick={() => deseleccionarTodasPreguntas(seccionKey)}
                                       className="h-6 text-xs"
@@ -3922,23 +3944,23 @@ export function AutosustentabilidadReportes() {
                                     </Button>
                                   </div>
                                 </div>
-                                
+
                                 <div className="space-y-1 max-h-40 overflow-y-auto">
                                   {Object.entries(seccion.grupos)
                                     .filter(([key, grupo]) => key !== "todos")
                                     .map(([preguntaKey, grupo]) => {
                                       const isPreguntaSelected = preguntasSeleccionadas.includes(preguntaKey)
-                                      
+
                                       return (
                                         <div key={preguntaKey} className="flex items-start space-x-2 p-1 hover:bg-accent/50 rounded">
-                                          <Checkbox 
+                                          <Checkbox
                                             id={`pregunta-${seccionKey}-${preguntaKey}`}
                                             checked={isPreguntaSelected}
                                             onCheckedChange={() => togglePregunta(seccionKey, preguntaKey)}
                                             className="mt-1"
                                           />
-                                          <Label 
-                                            htmlFor={`pregunta-${seccionKey}-${preguntaKey}`} 
+                                          <Label
+                                            htmlFor={`pregunta-${seccionKey}-${preguntaKey}`}
                                             className="text-xs cursor-pointer flex-1"
                                             title={grupo.nombre}
                                           >
@@ -3956,10 +3978,10 @@ export function AutosustentabilidadReportes() {
                         )
                       })}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 pt-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => {
                           setSeccionesIncluidas(Object.keys(SECCIONES))
@@ -3977,8 +3999,8 @@ export function AutosustentabilidadReportes() {
                       >
                         Seleccionar todo el contenido
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => {
                           setSeccionesIncluidas([])
@@ -4023,7 +4045,7 @@ export function AutosustentabilidadReportes() {
                         El formato PDF incluye gráficos de alta calidad. Word incluye tablas formateadas.
                       </p>
                     </div>
-                    
+
                     {/* Resumen de selección */}
                     <div className="border rounded-lg p-3 bg-muted/30">
                       <Label className="font-medium text-sm mb-2 block">Resumen de selección:</Label>
@@ -4035,7 +4057,7 @@ export function AutosustentabilidadReportes() {
                         <div className="flex justify-between">
                           <span>Preguntas totales:</span>
                           <span className="font-medium">
-                            {Object.values(preguntasPorSeccion).reduce((total, preguntas) => 
+                            {Object.values(preguntasPorSeccion).reduce((total, preguntas) =>
                               total + preguntas.length, 0)}
                           </span>
                         </div>
@@ -4051,19 +4073,19 @@ export function AutosustentabilidadReportes() {
                     </div>
                   </div>
                 </div>
-                
+
                 <DialogFooter className="pt-4 border-t">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setDialogOpen(false)}
                     disabled={generandoDocumento}
                   >
                     Cancelar
                   </Button>
-                  <Button 
-                    onClick={generarDocumento} 
+                  <Button
+                    onClick={generarDocumento}
                     disabled={
-                      seccionesIncluidas.length === 0 || 
+                      seccionesIncluidas.length === 0 ||
                       generandoDocumento ||
                       Object.values(preguntasPorSeccion).every(preguntas => preguntas.length === 0)
                     }
@@ -4084,7 +4106,7 @@ export function AutosustentabilidadReportes() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            
+
             {/* Indicador de progreso */}
             {generandoDocumento && (
               <div className="mt-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
