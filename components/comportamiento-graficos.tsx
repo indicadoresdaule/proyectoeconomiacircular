@@ -417,7 +417,7 @@ const CustomBarLabelDesktop = (props: any) => {
     <g>
       <text
         x={x + width / 2}
-        y={y - 30}
+        y={y - 23}
         textAnchor="middle"
         fontSize={10}
         fontWeight="600"
@@ -427,7 +427,7 @@ const CustomBarLabelDesktop = (props: any) => {
       </text>
       <text
         x={x + width / 2}
-        y={y - 17}
+        y={y - 9}
         textAnchor="middle"
         fontSize={9}
         fontWeight="500"
@@ -477,7 +477,7 @@ const CustomLineLabelDesktop = (props: any) => {
     <g>
       <text
         x={x}
-        y={y - 40}
+        y={y - 23}
         textAnchor="middle"
         fontSize={10}
         fontWeight="600"
@@ -487,7 +487,7 @@ const CustomLineLabelDesktop = (props: any) => {
       </text>
       <text
         x={x}
-        y={y - 25}
+        y={y - 10}
         textAnchor="middle"
         fontSize={9}
         fontWeight="500"
