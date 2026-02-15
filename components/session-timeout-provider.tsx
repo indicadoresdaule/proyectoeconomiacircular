@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client"
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 import { InactivityWarningDialog } from "@/components/inactivity-warning-dialog"
 
-// Componente interno que usa useSearchParams
 function SessionTimeoutProviderContent({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -15,11 +14,9 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  // Rutas públicas que no requieren timeout
   const publicRoutes = ["/login", "/auth/forgot-password", "/auth/reset-password", "/auth/callback"]
   const isPublicRoute = publicRoutes.some((route) => pathname?.startsWith(route))
 
-  // Verificar si venimos de un cierre por inactividad
   const isInactivityRedirect = searchParams?.get('reason') === 'inactivity'
 
   useEffect(() => {
@@ -29,9 +26,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
         const { data: { session } } = await supabase.auth.getSession()
         setIsAuthenticated(!!session)
         
-        // Si hay sesión y venimos de inactividad, limpiar el parámetro de la URL
         if (session && isInactivityRedirect) {
-          // Usar replaceState para limpiar la URL sin recargar
           const url = new URL(window.location.href)
           url.searchParams.delete('reason')
           window.history.replaceState({}, '', url.toString())
@@ -47,12 +42,10 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
 
     checkAuth()
 
-    // Escuchar cambios de autenticación
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session)
       
-      // Reiniciar el estado de inicialización cuando se autentica
       if (session) {
         setHasInitialized(true)
       }
@@ -63,13 +56,11 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
     }
   }, [pathname, isInactivityRedirect])
 
-  // Solo usar el hook de timeout si el usuario está autenticado
   const { showWarning, remainingTime, extendSession, logout, cleanupAllTimers } = useInactivityTimeout({
     timeoutMinutes: 30,
-    warningMinutes: 5,
+    warningMinutes: 25,
   })
 
-  // Efecto para limpiar timers cuando el usuario no está autenticado
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
       console.log("Usuario no autenticado, limpiando timers de inactividad")
@@ -77,17 +68,14 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
     }
   }, [isAuthenticated, isLoading, cleanupAllTimers])
 
-  // No mostrar nada durante la carga inicial
   if (isLoading) {
     return <>{children}</>
   }
 
-  // No aplicar timeout en rutas públicas o si no está autenticado
   if (isPublicRoute || !isAuthenticated) {
     return <>{children}</>
   }
 
-  // Solo mostrar el provider si ya se inicializó completamente
   if (!hasInitialized) {
     return <>{children}</>
   }
@@ -105,12 +93,7 @@ function SessionTimeoutProviderContent({ children }: { children: React.ReactNode
   )
 }
 
-// Componente wrapper principal que usa Suspense
-interface SessionTimeoutProviderProps {
-  children: React.ReactNode
-}
-
-export function SessionTimeoutProvider({ children }: SessionTimeoutProviderProps) {
+export function SessionTimeoutProvider({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<>{children}</>}>
       <SessionTimeoutProviderContent>
