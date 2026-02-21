@@ -25,7 +25,13 @@ import {
   Fingerprint,
   Mail,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  CalendarRange,
+  ChevronLeft,
+  ChevronDown,
+  CalendarDays,
+  Calendar as CalendarIcon,
+  FilterX
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -56,6 +62,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { es } from "date-fns/locale"
+import { format, subDays, subWeeks, subMonths, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 
 type UserRole = "admin" | "docente" | "tecnico" | "estudiante"
 type UserStatus = "active" | "inactive" | "pending"
@@ -87,6 +97,13 @@ interface UserData {
   profile: UserProfile | null
   banned_until: string | null
   login_history?: LoginHistory[]
+}
+
+type DateRangeType = "all" | "today" | "yesterday" | "custom"
+
+interface DateRange {
+  from: Date | undefined
+  to: Date | undefined
 }
 
 export default function GestionUsuariosPage() {
@@ -129,7 +146,14 @@ export default function GestionUsuariosPage() {
   const [userHistory, setUserHistory] = useState<LoginHistory[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [selectedSession, setSelectedSession] = useState<LoginHistory | null>(null)
-  const [activeTab, setActiveTab] = useState("all")
+  
+  // Nuevos estados para el filtro de fechas
+  const [dateRangeType, setDateRangeType] = useState<DateRangeType>("all")
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined
+  })
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
@@ -211,7 +235,8 @@ export default function GestionUsuariosPage() {
     setLoadingHistory(true)
     setUserHistory([])
     setSelectedSession(null)
-    setActiveTab("all")
+    setDateRangeType("all")
+    setCustomDateRange({ from: undefined, to: undefined })
     
     try {
       const response = await fetch(`/api/admin/users/${userId}/login-history`)
@@ -458,6 +483,10 @@ export default function GestionUsuariosPage() {
     })
   }
 
+  const formatShortDate = (date: Date) => {
+    return format(date, "dd/MM/yyyy", { locale: es })
+  }
+
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -480,24 +509,92 @@ export default function GestionUsuariosPage() {
     return email.slice(0, 2).toUpperCase()
   }
 
-  const filteredHistory = activeTab === "all" 
-    ? userHistory 
-    : userHistory.filter(h => {
-        const date = new Date(h.created_at)
-        const now = new Date()
-        switch(activeTab) {
-          case "today":
-            return date.toDateString() === now.toDateString()
-          case "week":
-            const weekAgo = new Date(now.setDate(now.getDate() - 7))
-            return date >= weekAgo
-          case "month":
-            const monthAgo = new Date(now.setMonth(now.getMonth() - 1))
-            return date >= monthAgo
-          default:
-            return true
+  // Función para filtrar el historial por rango de fechas
+  const getFilteredHistoryByDate = () => {
+    const now = new Date()
+    
+    switch (dateRangeType) {
+      case "all":
+        return userHistory
+        
+      case "today":
+        return userHistory.filter(h => 
+          format(new Date(h.created_at), "yyyy-MM-dd") === format(now, "yyyy-MM-dd")
+        )
+        
+      case "yesterday":
+        const yesterday = subDays(now, 1)
+        return userHistory.filter(h => 
+          format(new Date(h.created_at), "yyyy-MM-dd") === format(yesterday, "yyyy-MM-dd")
+        )
+        
+      case "custom":
+        if (customDateRange.from && customDateRange.to) {
+          return userHistory.filter(h => {
+            const date = new Date(h.created_at)
+            const from = startOfDay(customDateRange.from!)
+            const to = endOfDay(customDateRange.to!)
+            return date >= from && date <= to
+          })
         }
-      })
+        return userHistory
+        
+      default:
+        return userHistory
+    }
+  }
+
+  // Función para obtener el texto del filtro actual
+  const getDateRangeLabel = () => {
+    switch (dateRangeType) {
+      case "all":
+        return "Todo el historial"
+      case "today":
+        return "Hoy"
+      case "yesterday":
+        return "Ayer"
+      case "custom":
+        if (customDateRange.from && customDateRange.to) {
+          return `${formatShortDate(customDateRange.from)} - ${formatShortDate(customDateRange.to)}`
+        }
+        return "Rango personalizado"
+      default:
+        return "Seleccionar fechas"
+    }
+  }
+
+  // Función para aplicar un rango predefinido
+  const applyPresetRange = (preset: DateRangeType) => {
+    setDateRangeType(preset)
+    if (preset !== "custom") {
+      setCustomDateRange({ from: undefined, to: undefined })
+    }
+  }
+
+  // Función para limpiar filtros
+  const clearDateFilters = () => {
+    setDateRangeType("all")
+    setCustomDateRange({ from: undefined, to: undefined })
+  }
+
+  const filteredHistory = getFilteredHistoryByDate()
+
+  // Agrupar historial por fecha para mostrar en el sidebar
+  const groupHistoryByDate = () => {
+    const groups: { [key: string]: LoginHistory[] } = {}
+    
+    filteredHistory.forEach(item => {
+      const date = format(new Date(item.created_at), "yyyy-MM-dd")
+      if (!groups[date]) {
+        groups[date] = []
+      }
+      groups[date].push(item)
+    })
+    
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]))
+  }
+
+  const groupedHistory = groupHistoryByDate()
 
   if (loading) {
     return (
@@ -859,16 +956,17 @@ export default function GestionUsuariosPage() {
         </div>
       </div>
 
-      {/* History Dialog - Profesional */}
+      {/* History Dialog - Mejorado con filtro de fechas dinámico */}
       <Dialog open={historyOpen} onOpenChange={(open) => {
         setHistoryOpen(open)
         if (!open) {
           setSelectedSession(null)
-          setActiveTab("all")
+          setDateRangeType("all")
+          setCustomDateRange({ from: undefined, to: undefined })
         }
       }}>
-        <DialogContent className="bg-white sm:max-w-4xl p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-2">
+        <DialogContent className="bg-white sm:max-w-5xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -900,73 +998,264 @@ export default function GestionUsuariosPage() {
 
           <Separator />
 
-          <div className="grid grid-cols-12 divide-x divide-gray-200">
-            {/* Sidebar - Lista de sesiones */}
-            <div className="col-span-4 bg-gray-50">
-              <div className="p-4 border-b border-gray-200">
-                <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-4 bg-gray-200 p-1">
-                    <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-                    <TabsTrigger value="today" className="text-xs">Hoy</TabsTrigger>
-                    <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
-                    <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+          {/* Nuevo filtro de fechas dinámico - más compacto */}
+          <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 mr-2">
+                <CalendarRange className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filtrar:</span>
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={dateRangeType === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => applyPresetRange("all")}
+                  className={`h-8 text-xs px-3 ${dateRangeType === "all" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
+                >
+                  Todos
+                </Button>
+                <Button
+                  variant={dateRangeType === "today" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => applyPresetRange("today")}
+                  className={`h-8 text-xs px-3 ${dateRangeType === "today" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
+                >
+                  Hoy
+                </Button>
+                <Button
+                  variant={dateRangeType === "yesterday" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => applyPresetRange("yesterday")}
+                  className={`h-8 text-xs px-3 ${dateRangeType === "yesterday" ? "bg-purple-600 hover:bg-purple-700" : ""}`}
+                >
+                  Ayer
+                </Button>
+                
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+  <PopoverTrigger asChild>
+    <Button
+      variant={dateRangeType === "custom" ? "default" : "outline"}
+      size="sm"
+      className={`h-8 text-xs gap-1 px-3 ${
+        dateRangeType === "custom" 
+          ? "bg-purple-600 hover:bg-purple-700 text-white" 
+          : "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+      }`}
+    >
+      <CalendarIcon className="w-3 h-3" />
+      {dateRangeType === "custom" && customDateRange.from && customDateRange.to
+        ? getDateRangeLabel()
+        : "Personalizado"}
+    </Button>
+  </PopoverTrigger>
+  <PopoverContent 
+    className="w-auto p-0 bg-white border border-gray-200 shadow-lg rounded-lg" 
+    align="start"
+    onInteractOutside={(e) => {
+      // Prevenir cierre si estamos seleccionando fechas y no tenemos el rango completo
+      if (!customDateRange.from || !customDateRange.to) {
+        e.preventDefault();
+      }
+    }}
+    onEscapeKeyDown={(e) => {
+      // Prevenir cierre con ESC si estamos seleccionando fechas
+      if (!customDateRange.from || !customDateRange.to) {
+        e.preventDefault();
+      }
+    }}
+  >
+    <CalendarComponent
+      mode="range"
+      selected={customDateRange}
+      onSelect={(range) => {
+        // Solo actualizar el estado, NO cerrar automáticamente
+        setCustomDateRange({
+          from: range?.from,
+          to: range?.to
+        })
+        
+        // NO cerrar el calendario automáticamente cuando se seleccionan las dos fechas
+        // Quitamos la lógica de cierre automático
+      }}
+      numberOfMonths={2}
+      locale={es}
+      className="bg-white rounded-lg"
+      classNames={{
+        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        month: "space-y-4",
+        caption: "flex justify-center pt-1 relative items-center",
+        caption_label: "text-sm font-medium text-gray-900",
+        nav: "space-x-1 flex items-center",
+        nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+        nav_button_previous: "absolute left-1",
+        nav_button_next: "absolute right-1",
+        table: "w-full border-collapse space-y-1",
+        head_row: "flex",
+        head_cell: "text-gray-500 rounded-md w-9 font-normal text-[0.8rem]",
+        row: "flex w-full mt-2",
+        cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-purple-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-purple-100 rounded-md",
+        day_selected: "bg-purple-600 text-white hover:bg-purple-700 hover:text-white focus:bg-purple-600 focus:text-white",
+        day_today: "bg-gray-100 text-gray-900",
+        day_outside: "text-gray-400 opacity-50",
+        day_disabled: "text-gray-400 opacity-50",
+        day_range_middle: "aria-selected:bg-purple-100 aria-selected:text-gray-900",
+        day_hidden: "invisible",
+      }}
+    />
+    <div className="p-3 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <span className="text-xs text-gray-500">
+        {!customDateRange.from && !customDateRange.to && "Selecciona fecha inicial"}
+        {customDateRange.from && !customDateRange.to && "Selecciona fecha final"}
+        {customDateRange.from && customDateRange.to && "Rango seleccionado - Haz clic en 'Aplicar'"}
+      </span>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50"
+          onClick={() => {
+            setCustomDateRange({ from: undefined, to: undefined })
+          }}
+        >
+          Limpiar
+        </Button>
+        <Button
+          size="sm"
+          variant="default"
+          className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+          disabled={!customDateRange.from || !customDateRange.to}
+          onClick={() => {
+            if (customDateRange.from && customDateRange.to) {
+              setDateRangeType("custom")
+              setCalendarOpen(false)
+            }
+          }}
+        >
+          Aplicar
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs"
+          onClick={() => {
+            setCalendarOpen(false)
+            // Solo limpiar si no hay rango completo
+            if (!customDateRange.from || !customDateRange.to) {
+              setDateRangeType("all")
+              setCustomDateRange({ from: undefined, to: undefined })
+            }
+          }}
+        >
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  </PopoverContent>
+</Popover>
+
+                {dateRangeType !== "all" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDateFilters}
+                    className="h-8 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <FilterX className="w-3 h-3" />
+                  </Button>
+                )}
               </div>
 
-              <ScrollArea className="h-[400px]">
+              <Badge variant="outline" className="ml-auto bg-white text-xs h-7">
+                <CalendarDays className="w-3 h-3 mr-1" />
+                {filteredHistory.length} de {userHistory.length}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 divide-x divide-gray-200">
+            {/* Sidebar - Lista de sesiones agrupadas por fecha */}
+            <div className="col-span-4 bg-gray-50">
+              <div className="p-3 border-b border-gray-200 bg-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Sesiones
+                  </span>
+                  <Badge variant="outline" className="bg-white text-xs">
+                    {filteredHistory.length}
+                  </Badge>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[380px]">
                 {loadingHistory ? (
                   <div className="flex items-center justify-center h-full">
                     <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
                   </div>
                 ) : filteredHistory.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <AlertCircle className="w-8 h-8 text-gray-400" />
+                  <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                      <AlertCircle className="w-6 h-6 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 font-medium">No hay accesos registrados</p>
-                    <p className="text-sm text-gray-400 mt-1">En este período no se encontraron inicios de sesión</p>
+                    <p className="text-sm text-gray-500">No hay accesos en este período</p>
+                    {dateRangeType === "custom" && (!customDateRange.from || !customDateRange.to) && (
+                      <p className="text-xs text-purple-600 mt-2">
+                        Selecciona ambas fechas en el calendario
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  <div className="p-2 space-y-1">
-                    {filteredHistory.map((login, index) => (
-                      <button
-                        key={login.id}
-                        onClick={() => setSelectedSession(login)}
-                        className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                          selectedSession?.id === login.id
-                            ? 'bg-purple-50 border-2 border-purple-200 shadow-sm'
-                            : 'hover:bg-white hover:shadow-sm border-2 border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-full ${
-                            index === 0 ? 'bg-green-100' : 'bg-gray-100'
-                          }`}>
-                            <Monitor className={`w-4 h-4 ${
-                              index === 0 ? 'text-green-600' : 'text-gray-500'
-                            }`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-gray-800 truncate">
-                                {index === 0 ? 'Sesión actual' : `Acceso #${filteredHistory.length - index}`}
-                              </p>
-                              <ChevronRight className={`w-4 h-4 ${
-                                selectedSession?.id === login.id ? 'text-purple-600' : 'text-gray-400'
-                              }`} />
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatRelativeTime(login.created_at)}
-                            </p>
-                            {login.ip_address && (
-                              <p className="text-xs text-gray-400 mt-1">
-                                IP: {login.ip_address}
-                              </p>
-                            )}
-                          </div>
+                  <div className="p-2 space-y-3">
+                    {groupedHistory.map(([date, sessions]) => (
+                      <div key={date}>
+                        <div className="px-3 py-1.5 bg-gray-200 rounded-md mb-1.5">
+                          <p className="text-xs font-semibold text-gray-600">
+                            {format(new Date(date), "EEEE, d MMM", { locale: es })}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {sessions.length} {sessions.length === 1 ? 'acceso' : 'accesos'}
+                          </p>
                         </div>
-                      </button>
+                        <div className="space-y-1 pl-1">
+                          {sessions.map((login, index) => (
+                            <button
+                              key={login.id}
+                              onClick={() => setSelectedSession(login)}
+                              className={`w-full text-left p-2 rounded-md transition-all duration-200 ${
+                                selectedSession?.id === login.id
+                                  ? 'bg-purple-50 border border-purple-200 shadow-sm'
+                                  : 'hover:bg-white hover:shadow-sm border border-transparent'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className={`p-1 rounded-full ${
+                                  index === 0 && sessions.length > 0 ? 'bg-green-100' : 'bg-gray-100'
+                                }`}>
+                                  <Clock className={`w-2.5 h-2.5 ${
+                                    index === 0 && sessions.length > 0 ? 'text-green-600' : 'text-gray-500'
+                                  }`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-medium text-gray-800">
+                                      {format(new Date(login.created_at), "HH:mm:ss")}
+                                    </p>
+                                    <ChevronRight className={`w-3 h-3 ${
+                                      selectedSession?.id === login.id ? 'text-purple-600' : 'text-gray-300'
+                                    }`} />
+                                  </div>
+                                  {login.ip_address && (
+                                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                                      {login.ip_address}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -976,111 +1265,120 @@ export default function GestionUsuariosPage() {
             {/* Main Content - Detalles de la sesión */}
             <div className="col-span-8 bg-white">
               {selectedSession ? (
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Detalles del Acceso</h3>
+                <div className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold text-gray-800">Detalles del Acceso</h3>
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
+                      ID: {selectedSession.id.slice(0, 8)}...
+                    </Badge>
+                  </div>
                   
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Fecha y Hora */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Calendar className="w-4 h-4 text-blue-600" />
+                    <div className="bg-purple-50/50 p-3 rounded-lg border border-purple-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="p-1.5 bg-purple-100 rounded-md">
+                          <Calendar className="w-3.5 h-3.5 text-purple-600" />
                         </div>
-                        <span className="font-medium text-gray-700">Fecha y Hora</span>
+                        <span className="text-xs font-medium text-gray-600">Fecha y Hora</span>
                       </div>
-                      <p className="text-gray-600 ml-9">{formatDate(selectedSession.created_at)}</p>
+                      <p className="text-sm text-gray-700 ml-7">{formatDate(selectedSession.created_at)}</p>
+                      <p className="text-xs text-purple-600 ml-7 mt-0.5">
+                        {formatRelativeTime(selectedSession.created_at)}
+                      </p>
                     </div>
 
                     {/* Información del Usuario */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                          <Mail className="w-4 h-4 text-purple-600" />
+                    <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="p-1.5 bg-blue-100 rounded-md">
+                          <Mail className="w-3.5 h-3.5 text-blue-600" />
                         </div>
-                        <span className="font-medium text-gray-700">Usuario</span>
+                        <span className="text-xs font-medium text-gray-600">Usuario</span>
                       </div>
-                      <div className="ml-9">
-                        <p className="text-gray-600">{selectedSession.email}</p>
-                        <p className="text-xs text-gray-400 mt-1">ID: {selectedSession.user_id}</p>
-                      </div>
+                      <p className="text-sm text-gray-700 ml-7">{selectedSession.email}</p>
+                      <p className="text-xs text-blue-600 ml-7 mt-0.5 break-all">ID: {selectedSession.user_id}</p>
                     </div>
 
                     {/* Dirección IP */}
                     {selectedSession.ip_address && (
-                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-indigo-100 rounded-lg">
-                            <Globe className="w-4 h-4 text-indigo-600" />
+                      <div className="bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="p-1.5 bg-indigo-100 rounded-md">
+                            <Globe className="w-3.5 h-3.5 text-indigo-600" />
                           </div>
-                          <span className="font-medium text-gray-700">Dirección IP</span>
+                          <span className="text-xs font-medium text-gray-600">Dirección IP</span>
                         </div>
-                        <p className="text-gray-600 ml-9 font-mono">{selectedSession.ip_address}</p>
+                        <p className="text-sm text-gray-700 ml-7 font-mono bg-white p-1.5 rounded border border-indigo-100">
+                          {selectedSession.ip_address}
+                        </p>
                       </div>
                     )}
 
                     {/* User Agent */}
                     {selectedSession.user_agent && (
-                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <Monitor className="w-4 h-4 text-green-600" />
+                      <div className="bg-green-50/50 p-3 rounded-lg border border-green-100">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="p-1.5 bg-green-100 rounded-md">
+                            <Monitor className="w-3.5 h-3.5 text-green-600" />
                           </div>
-                          <span className="font-medium text-gray-700">Navegador / Dispositivo</span>
+                          <span className="text-xs font-medium text-gray-600">Navegador / Dispositivo</span>
                         </div>
-                        <p className="text-gray-600 ml-9 text-sm break-words">
+                        <div className="ml-7 bg-white p-2 rounded border border-green-100 text-xs text-gray-600 break-words max-h-20 overflow-y-auto">
                           {selectedSession.user_agent}
-                        </p>
+                        </div>
                       </div>
                     )}
 
                     {/* ID de Sesión */}
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-gray-200 rounded-lg">
-                          <Fingerprint className="w-4 h-4 text-gray-600" />
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="p-1.5 bg-gray-200 rounded-md">
+                          <Fingerprint className="w-3.5 h-3.5 text-gray-600" />
                         </div>
-                        <span className="font-medium text-gray-700">ID de Registro</span>
+                        <span className="text-xs font-medium text-gray-600">ID de Registro</span>
                       </div>
-                      <p className="text-gray-600 ml-9 text-xs font-mono">{selectedSession.id}</p>
+                      <p className="text-xs text-gray-600 ml-7 font-mono bg-gray-50 p-1.5 rounded border border-gray-200 break-all">
+                        {selectedSession.id}
+                      </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center p-8">
+                <div className="h-full flex items-center justify-center p-6">
                   <div className="text-center">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <History className="w-10 h-10 text-gray-400" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <History className="w-8 h-8 text-purple-300" />
                     </div>
-                    <p className="text-gray-500 font-medium">Selecciona una sesión</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      Haz clic en cualquier acceso de la lista para ver los detalles
-                    </p>
+                    <p className="text-sm text-gray-500">Selecciona una sesión</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          <DialogFooter className="p-4 bg-gray-50 border-t border-gray-200">
+          <DialogFooter className="p-3 bg-gray-50 border-t border-gray-200">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-white">
-                  Total: {userHistory.length} accesos
+                <Badge variant="outline" className="bg-white text-xs px-2 py-0.5">
+                  Total: {userHistory.length}
                 </Badge>
                 {filteredHistory.length !== userHistory.length && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-600 border-purple-200">
+                  <Badge className="bg-purple-600 text-white border-purple-600 text-xs px-2 py-0.5">
                     Filtrados: {filteredHistory.length}
                   </Badge>
                 )}
               </div>
               <Button
+                size="sm"
                 variant="outline"
                 onClick={() => {
                   setHistoryOpen(false)
                   setSelectedSession(null)
-                  setActiveTab("all")
+                  setDateRangeType("all")
+                  setCustomDateRange({ from: undefined, to: undefined })
                 }}
-                className="bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-600 hover:scale-105 transition-all duration-300"
+                className="h-8 text-xs bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
               >
                 Cerrar
               </Button>
