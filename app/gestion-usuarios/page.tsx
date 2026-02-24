@@ -608,13 +608,18 @@ export default function GestionUsuariosPage() {
 
   const groupedHistory = groupHistoryByDate()
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-secondary-bg">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-secondary-bg to-background">
+      <div className="text-center space-y-4">
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full bg-primary/20 animate-ping absolute"></div>
+          <div className="w-20 h-20 rounded-full bg-primary/30 animate-pulse flex items-center justify-center relative">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          </div>
+        </div>
       </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-secondary-bg py-8 px-4">
