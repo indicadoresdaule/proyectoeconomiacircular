@@ -824,9 +824,6 @@ export default function GestionUsuariosPage() {
                   <SelectItem value="inactive" className="hover:bg-gray-100 transition-colors duration-200">
                     Suspendidos
                   </SelectItem>
-                  <SelectItem value="pending" className="hover:bg-gray-100 transition-colors duration-200">
-                    Pendientes
-                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
