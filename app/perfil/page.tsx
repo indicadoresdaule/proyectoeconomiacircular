@@ -139,92 +139,91 @@ export default function PerfilPage() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-br from-secondary-bg to-background p-4 md:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-secondary-bg to-background p-3 sm:p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
-          {/* Breadcrumb simple */}
-          <div className="flex items-center gap-2 text-sm text-secondary-text mb-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push("/")} className="h-8 px-2">
-              <Home className="w-4 h-4" />
+          {/* Breadcrumb mejorado para móvil */}
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-secondary-text mb-3 sm:mb-4">
+            <Button variant="ghost" size="sm" onClick={() => router.push("/")} className="h-7 sm:h-8 px-1.5 sm:px-2">
+              <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Button>
-            <span>/</span>
-            <span className="text-foreground font-medium">Mi Perfil</span>
+            <span className="text-secondary-text">/</span>
+            <span className="text-foreground font-medium truncate">Mi Perfil</span>
           </div>
 
           <Card className="border-border shadow-lg overflow-hidden">
-            {/* Banner con gradiente según rol */}
-            <div className="h-24 bg-gradient-to-r from-green-500/20 to-emerald-500/20" />
+            {/* Banner con gradiente original - AHORA FIJO */}
+            <div className="h-16 sm:h-20 md:h-24 bg-gradient-to-r from-green-500/20 to-emerald-500/20" />
             
             {/* Contenido principal */}
-            <CardContent className="relative px-6 pb-6">
-              {/* Avatar flotante */}
-              <div className="flex justify-between items-start -mt-12 mb-4">
-                <div className="flex items-end gap-4">
+            <CardContent className="relative px-4 sm:px-6 pb-4 sm:pb-6">
+              {/* Avatar flotante - mejorado para móvil */}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start -mt-8 sm:-mt-12 mb-3 sm:mb-4">
+                <div className="flex items-end gap-3 sm:gap-4">
                   <div className="relative">
-                    <Avatar className="w-24 h-24 border-4 border-background shadow-xl">
+                    <Avatar className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 border-4 border-background shadow-xl">
                       <AvatarImage src="/images/ingenieria-20-282-29.jpeg" />
-                      <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                      <AvatarFallback className="bg-primary/10 text-primary text-lg sm:text-xl md:text-2xl">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
-                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full ${roleConfig.color} flex items-center justify-center ring-2 ring-background`}>
-                      <RoleIcon className="w-3 h-3" />
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full ${roleConfig.color} flex items-center justify-center ring-2 ring-background`}>
+                      <RoleIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </div>
                   </div>
                   
-                  <div className="pb-2">
-                    <h1 className="text-2xl font-bold text-foreground">
+                  <div className="pb-1 sm:pb-2">
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
                       {profile.full_name || "Usuario"}
                     </h1>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className={roleConfig.badgeColor}>
-                        <RoleIcon className="w-3 h-3 mr-1" />
+                    <div className="flex items-center gap-2 mt-0.5 sm:mt-1">
+                      <Badge variant="outline" className={`${roleConfig.badgeColor} text-xs sm:text-sm px-2 py-0.5 sm:px-2.5 sm:py-1`}>
+                        <RoleIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
                         {roleConfig.label}
                       </Badge>
-                      
                     </div>
                   </div>
                 </div>
               </div>
 
-              <Separator className="my-6" />
+              <Separator className="my-4 sm:my-6" />
 
-              {/* Grid de información */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Grid de información - mejorado para móvil */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {/* Email */}
-                <div className="group p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <Mail className="w-4 h-4 text-primary" />
+                <div className="group p-3 sm:p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-secondary-text mb-1">Correo Electrónico</p>
-                      <p className="text-sm font-medium text-foreground break-all">{user.email}</p>
+                      <p className="text-xs font-medium text-secondary-text mb-0.5 sm:mb-1">Correo Electrónico</p>
+                      <p className="text-xs sm:text-sm font-medium text-foreground break-all">{user.email}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* ID Usuario */}
-                <div className="group p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <div className="text-primary font-mono font-bold text-sm">#</div>
+                <div className="group p-3 sm:p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="text-primary font-mono font-bold text-xs sm:text-sm">#</div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-secondary-text mb-1">ID de Usuario</p>
-                      <div className="flex items-center gap-2">
-                        <code className="text-sm bg-background px-2 py-1 rounded border border-border font-mono">
-                          {user.id.slice(0, 12)}...
+                      <p className="text-xs font-medium text-secondary-text mb-0.5 sm:mb-1">ID de Usuario</p>
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <code className="text-xs sm:text-sm bg-background px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-border font-mono truncate max-w-[120px] sm:max-w-none">
+                          {user.id.slice(0, 8)}...
                         </code>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7"
+                          className="h-6 w-6 sm:h-7 sm:w-7"
                           onClick={() => copyToClipboard(user.id)}
                         >
                           {copied ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                            <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" />
                           ) : (
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           )}
                         </Button>
                       </div>
@@ -232,17 +231,16 @@ export default function PerfilPage() {
                   </div>
                 </div>
 
-                {/* Fecha registro detallada */}
-                <div className="group p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all md:col-span-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                      <Calendar className="w-4 h-4 text-primary" />
+                {/* Fecha registro */}
+                <div className="group p-3 sm:p-4 bg-muted/30 rounded-xl border border-border hover:border-primary/30 hover:bg-muted/50 transition-all md:col-span-2">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-secondary-text mb-1">Fecha de Registro</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-xs font-medium text-secondary-text mb-0.5 sm:mb-1">Fecha de Registro</p>
+                      <p className="text-xs sm:text-sm font-medium">
                         {new Date(profile.created_at).toLocaleDateString('es-ES', {
-                          weekday: 'long',
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
@@ -253,35 +251,37 @@ export default function PerfilPage() {
                 </div>
               </div>
 
-              {/* Acciones principales */}
-              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              {/* Acciones principales - BOTONES CENTRADOS */}
+              <div className="flex flex-col items-center sm:flex-row sm:justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
                 {profile.role === "admin" && (
                   <Button 
                     onClick={() => router.push("/gestion-usuarios")} 
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0"
-                    size="lg"
+                    className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0"
+                    size="default"
                   >
                     <Shield className="w-4 h-4 mr-2" />
-                    Panel de Administración
+                    Panel de Admin
                   </Button>
                 )}
                 
                 <Button 
                   onClick={handleLogout} 
                   disabled={loggingOut}
-                  variant="destructive" 
-                  size="lg"
-                  className="flex-1"
+                  variant="destructive"
+                  size="default"
+                  className="w-full sm:w-auto"
                 >
                   {loggingOut ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Cerrando sesión...
+                      <span className="sm:hidden">Cerrando...</span>
+                      <span className="hidden sm:inline">Cerrando sesión...</span>
                     </>
                   ) : (
                     <>
                       <LogOut className="w-4 h-4 mr-2" />
-                      Cerrar Sesión
+                      <span className="sm:hidden">Salir</span>
+                      <span className="hidden sm:inline">Cerrar Sesión</span>
                     </>
                   )}
                 </Button>
@@ -289,10 +289,6 @@ export default function PerfilPage() {
 
             </CardContent>
           </Card>
-
-          {/* Mensaje de bienvenida personalizado */}
-          <div className="mt-4 text-center text-sm text-secondary-text">
-          </div>
         </div>
       </div>
     </TooltipProvider>
